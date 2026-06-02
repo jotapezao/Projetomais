@@ -1,0 +1,14 @@
+{
+  "name": "gestao-integrada-360",
+  "version": "1.0.0",
+  "description": "Sistema Profissional de Gestão de Tarefas, Projetos e Chamados",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "install": "cd frontend && npm install && cd ../backend && npm install",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start"
+  }
+}
