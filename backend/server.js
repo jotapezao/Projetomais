@@ -1,3 +1,20 @@
+/**
+ * ==========================================
+ * PONTO DE ENTRADA DO BACKEND (ENTRY POINT)
+ * ==========================================
+ * Arquivo principal do servidor Node.js/Express.
+ * 
+ * RESPONSABILIDADES:
+ * 1. Inicializar as variáveis de ambiente (.env).
+ * 2. Configurar os middlewares globais (CORS, JSON parser).
+ * 3. Montar todas as rotas da API REST (Auth, Projetos, Tarefas, Chamados, Admin).
+ * 4. Servir os arquivos estáticos do Frontend (React/Vite) em ambiente de Produção (ex: Railway).
+ * 5. Inicializar o Banco de Dados (PostgreSQL) antes de abrir a porta do servidor.
+ * 
+ * GUIA PARA A IA E DESENVOLVEDORES:
+ * - Se precisar adicionar um novo módulo (ex: Faturamento), crie a rota em `src/routes/faturamento.js` e monte-a aqui usando `app.use('/api/faturamento', faturamentoRoutes)`.
+ * - Este arquivo usa ES Modules (`import/export`).
+ */
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';

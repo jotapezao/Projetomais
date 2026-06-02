@@ -1,3 +1,22 @@
+/**
+ * ==========================================
+ * PONTO DE ENTRADA DO FRONTEND (APP SHELL)
+ * ==========================================
+ * Este é o componente raiz do React.
+ * 
+ * ESTRUTURA E RESPONSABILIDADES:
+ * 1. Roteamento: Usa `react-router-dom` para gerenciar as telas.
+ * 2. Layout Principal: Envolve todas as páginas (Dashboard, Projetos, etc.) com a Barra Lateral (Sidebar) e o Cabeçalho (Header).
+ * 3. Proteção de Rotas: O componente `ProtectedRoute` verifica se o usuário tem um Token JWT válido no `localStorage`.
+ *    Se não tiver, redireciona para `/login`.
+ * 
+ * GUIA PARA A IA E DESENVOLVEDORES:
+ * - Para criar uma nova tela:
+ *   1. Crie o arquivo em `src/pages/SuaTela.jsx`.
+ *   2. Importe-o aqui no `App.jsx`.
+ *   3. Adicione a rota `<Route path="/sua-tela" element={<SuaTela />} />` dentro do `<Route element={<Layout />}>`.
+ *   4. Adicione o link na Sidebar (dentro deste mesmo arquivo, no componente `Sidebar`).
+ */
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { 

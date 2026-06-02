@@ -1,3 +1,26 @@
+/**
+ * ==========================================
+ * CAMADA DE PERSISTÊNCIA DE DADOS (DATABASE)
+ * ==========================================
+ * Este módulo gerencia a comunicação com o PostgreSQL usando a biblioteca `pg`.
+ * 
+ * ARQUITETURA DO BANCO DE DADOS (Padrão NoSQL sobre SQL):
+ * Para manter a flexibilidade de dados (ex: arrays de checklists, histórico de chamados aninhados)
+ * sem precisar criar dezenas de tabelas relacionais e migrations complexas nesta fase, 
+ * adotamos o padrão de Tabela Única usando JSONB nativo do Postgres.
+ * 
+ * TABELA MESTRA: `data_store`
+ * - `collection_name` (Ex: 'users', 'tasks', 'tickets')
+ * - `id` (Chave primária exclusiva)
+ * - `data` (Coluna JSONB contendo todos os dados do registro)
+ * 
+ * GUIA PARA A IA E DESENVOLVEDORES:
+ * - Para buscar dados: Use consultas SQL apontando para a coluna `data` ou use o wrapper `dbService`.
+ * - Se no futuro o sistema crescer muito e exigir relacionamentos estritos, você pode extrair
+ *   uma 'collection' específica (ex: 'users') para uma tabela SQL real, alterando apenas os 
+ *   métodos correspondentes dentro de `dbService`, sem quebrar os controladores (routes).
+ * - O AuditLog também usa esta mesma tabela para salvar rastros.
+ */
 import pkg from 'pg';
 const { Pool } = pkg;
 import bcrypt from 'bcryptjs';
