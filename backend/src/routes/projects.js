@@ -21,6 +21,22 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/users', async (req, res) => {
+  try {
+    const users = await dbService.getCollection('users');
+    const currentUser = await dbService.getById('users', req.user.id);
+    
+    if (currentUser.role === 'super_admin') {
+      res.json(users);
+    } else {
+      const companyUsers = users.filter(u => u.companyId === currentUser.companyId);
+      res.json(companyUsers);
+    }
+  } catch (err) {
+    res.status(500).json({ message: 'Erro no servidor' });
+  }
+});
+
 router.post('/', requireRole(['super_admin', 'admin', 'gestor']), async (req, res) => {
   try {
     const newProject = await dbService.create('projects', req.body, req.user.id, req.user.name);
