@@ -44,6 +44,12 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor backend rodando na porta ${PORT}`);
+import { initializeDB } from './src/database/db.js';
+
+initializeDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Servidor backend rodando na porta ${PORT}`);
+  });
+}).catch(err => {
+  console.error("Falha ao iniciar o banco de dados:", err);
 });
