@@ -113,15 +113,18 @@ export default function Tickets() {
     }
   };
 
-  const handleStatusChange = async (status, logComment = '') => {
-    if (!selectedTicket) return;
+  const handleStatusChange = async (ticketId, status, logComment = '') => {
+    const id = ticketId || selectedTicket?.id;
+    if (!id) return;
     try {
-      const res = await client.patch(`/tickets/${selectedTicket.id}/status`, {
+      const res = await client.patch(`/tickets/${id}/status`, {
         status,
         comment: logComment || `Status atualizado para ${status.replace('_', ' ')}`
       });
-      setSelectedTicket(res.data);
-      setTickets(prev => prev.map(t => t.id === res.data.id ? res.data : t));
+      if (selectedTicket && selectedTicket.id === id) {
+        setSelectedTicket(res.data);
+      }
+      setTickets(prev => prev.map(t => t.id === id ? res.data : t));
     } catch (error) {
       console.error('Erro ao alterar status', error);
     }
@@ -212,7 +215,7 @@ export default function Tickets() {
               {ticket.status !== 'resolvido' && ticket.status !== 'fechado' && (
                 <button 
                   className="btn btn-primary" 
-                  onClick={() => { setSelectedTicket(ticket); handleStatusChange('resolvido', 'Chamado resolvido pelo operador.'); }}
+                  onClick={() => handleStatusChange(ticket.id, 'resolvido', 'Chamado resolvido pelo operador.')}
                   style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', background: 'hsl(var(--success))' }}
                 >
                   <CheckCircle size={14} /> Resolver
@@ -369,22 +372,22 @@ export default function Tickets() {
                   {/* Status Actions */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {selectedTicket.status !== 'em_atendimento' && selectedTicket.status !== 'resolvido' && selectedTicket.status !== 'fechado' && (
-                      <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => handleStatusChange('em_atendimento', 'Atendimento iniciado.')}>
+                      <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => handleStatusChange(selectedTicket.id, 'em_atendimento', 'Atendimento iniciado.')}>
                         Iniciar Atendimento
                       </button>
                     )}
                     {selectedTicket.status !== 'resolvido' && selectedTicket.status !== 'fechado' && (
-                      <button className="btn btn-primary" style={{ width: '100%', background: 'hsl(var(--success))' }} onClick={() => handleStatusChange('resolvido', 'Chamado marcado como resolvido.')}>
+                      <button className="btn btn-primary" style={{ width: '100%', background: 'hsl(var(--success))' }} onClick={() => handleStatusChange(selectedTicket.id, 'resolvido', 'Chamado marcado como resolvido.')}>
                         Resolver Chamado
                       </button>
                     )}
                     {selectedTicket.status === 'resolvido' && (
-                      <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => handleStatusChange('fechado', 'Chamado fechado e finalizado.')}>
+                      <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => handleStatusChange(selectedTicket.id, 'fechado', 'Chamado fechado e finalizado.')}>
                         Fechar Chamado
                       </button>
                     )}
                     {(selectedTicket.status === 'resolvido' || selectedTicket.status === 'fechado') && (
-                      <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => handleStatusChange('em_atendimento', 'Reabertura de chamado.')}>
+                      <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => handleStatusChange(selectedTicket.id, 'em_atendimento', 'Reabertura de chamado.')}>
                         Reabrir Chamado
                       </button>
                     )}

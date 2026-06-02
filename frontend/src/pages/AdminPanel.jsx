@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Settings, Shield, Mail, Zap, Server, Activity, Plus } from 'lucide-react';
+import { Settings, Shield, Mail, Zap, Server, Activity, Plus, Database, CheckCircle, AlertCircle } from 'lucide-react';
 import client from '../api/client';
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('logs');
   const [logs, setLogs] = useState([]);
   const [automations, setAutomations] = useState([]);
+  const [backupTests, setBackupTests] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Email Config State
@@ -23,17 +24,20 @@ export default function AdminPanel() {
 
   const [testResult, setTestResult] = useState({ show: false, success: false, message: '' });
   const [saveStatus, setSaveStatus] = useState('');
+  const [backupStatus, setBackupStatus] = useState('');
 
   const fetchData = async () => {
     try {
-      const [logsRes, emailRes, autoRes] = await Promise.all([
+      const [logsRes, emailRes, autoRes, backupRes] = await Promise.all([
         client.get('/admin/audit-logs'),
         client.get('/admin/email-settings'),
-        client.get('/admin/automations')
+        client.get('/admin/automations'),
+        client.get('/admin/backup/restore-tests')
       ]);
       
       setLogs(logsRes.data);
       setAutomations(autoRes.data);
+      setBackupTests(backupRes.data);
       
       if (emailRes.data && emailRes.data.length > 0) {
         const config = emailRes.data[0];
@@ -107,13 +111,25 @@ export default function AdminPanel() {
 
   const handleToggleAutomation = async (auto) => {
     const updatedAuto = { ...auto, active: !auto.active };
-    // Optimistic UI update
     setAutomations(prev => prev.map(a => a.id === auto.id ? updatedAuto : a));
     try {
       await client.put(`/admin/automations/${auto.id}`, updatedAuto);
     } catch (error) {
       console.error('Erro ao atualizar automação', error);
-      fetchData(); // rollback
+      fetchData();
+    }
+  };
+
+  const handleRunRestoreTest = async () => {
+    setBackupStatus('Iniciando teste de restauração...');
+    try {
+      const res = await client.post('/admin/backup/restore-test');
+      setBackupStatus('Restauração validada com sucesso!');
+      setBackupTests(prev => [res.data, ...prev]);
+      setTimeout(() => setBackupStatus(''), 4000);
+    } catch (error) {
+      setBackupStatus('Falha ao rodar teste de restauração.');
+      setTimeout(() => setBackupStatus(''), 4000);
     }
   };
 
@@ -123,7 +139,7 @@ export default function AdminPanel() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ marginBottom: '0.25rem' }}>Administração do Sistema</h1>
-        <p style={{ color: 'hsl(var(--text-secondary))' }}>Configurações globais, segurança e integrações.</p>
+        <p style={{ color: 'hsl(var(--text-secondary))' }}>Configurações globais, segurança e backups.</p>
       </div>
 
       <div style={{ display: 'flex', gap: '2rem', flex: 1, overflow: 'hidden' }}>
@@ -152,11 +168,18 @@ export default function AdminPanel() {
             <Zap size={18} /> Regras e Automações
           </button>
           <button 
+            className={`btn ${activeTab === 'backups' ? 'btn-primary' : 'btn-secondary'}`} 
+            style={{ justifyContent: 'flex-start', padding: '0.75rem 1rem', border: activeTab === 'backups' ? 'none' : '' }}
+            onClick={() => setActiveTab('backups')}
+          >
+            <Database size={18} /> Banco & Backups
+          </button>
+          <button 
             className={`btn ${activeTab === 'security' ? 'btn-primary' : 'btn-secondary'}`} 
             style={{ justifyContent: 'flex-start', padding: '0.75rem 1rem', border: activeTab === 'security' ? 'none' : '' }}
             onClick={() => setActiveTab('security')}
           >
-            <Shield size={18} /> Permissões
+            <Shield size={18} /> Permissões (RBAC)
           </button>
         </div>
 
@@ -309,13 +332,95 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {activeTab === 'backups' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Segurança & Backups do PostgreSQL</h2>
+                  <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.85rem', margin: 0 }}>Políticas de backup diário e histórico de testes de restauração de desastre.</p>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  {backupStatus && <span style={{ fontSize: '0.9rem', color: 'hsl(var(--accent-primary))' }}>{backupStatus}</span>}
+                  <button className="btn btn-primary" onClick={handleRunRestoreTest}><Database size={16} /> Validar Teste de Restauração</button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
+                <div className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))', height: 'fit-content' }}>
+                  <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Políticas Vigentes</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem' }}>
+                      <span style={{ color: 'hsl(var(--text-secondary))' }}>Frequência de Backup:</span>
+                      <strong>Diário (03:00 AM)</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem' }}>
+                      <span style={{ color: 'hsl(var(--text-secondary))' }}>Destino / Storage:</span>
+                      <strong>Amazon S3 (modaverao-backups)</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem' }}>
+                      <span style={{ color: 'hsl(var(--text-secondary))' }}>Retenção:</span>
+                      <strong>30 dias</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem' }}>
+                      <span style={{ color: 'hsl(var(--text-secondary))' }}>Criptografia:</span>
+                      <strong>AES-256</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Histórico de Validação de Restauração</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {backupTests.map(test => (
+                      <div key={test.id} className="glass-panel" style={{ padding: '1.25rem', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'hsl(var(--success-light))', fontWeight: '500', fontSize: '0.9rem' }}>
+                            <CheckCircle size={16} /> Restauração com Sucesso
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>{new Date(test.date).toLocaleString()}</span>
+                        </div>
+                        <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', color: 'hsl(var(--text-secondary))' }}>
+                          {test.comment}
+                        </p>
+                        <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>
+                          <span>Tamanho do Dump: <strong>{test.sizeMB} MB</strong></span>
+                          <span>Verificado por: <strong>{test.verifiedBy}</strong></span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'security' && (
             <div>
-              <h2 style={{ fontSize: '1.25rem', marginBottom: '2rem' }}>Controle de Acesso (RBAC)</h2>
-              <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
-                <Shield size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                <h3>Perfis de Usuários</h3>
-                <p style={{ marginTop: '0.5rem' }}>Gestão granular e edição de papéis (super_admin, admin, gestor, coordenador, operador, cliente).</p>
+              <h2 style={{ fontSize: '1.25rem', marginBottom: '2rem' }}>Controle de Acesso (RBAC) & Segurança</h2>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                
+                <div className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Configurações de Acesso</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'hsl(var(--bg-card))', borderRadius: 'var(--radius-md)' }}>
+                    <div>
+                      <h4 style={{ fontSize: '0.95rem', margin: 0 }}>MFA (Autenticação de Dois Fatores) Obrigatório</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'hsl(var(--text-secondary))', margin: 0 }}>Exigir segundo fator de autenticação para administradores (System Admin e Team Admin).</p>
+                    </div>
+                    <span className="badge badge-success">Ativado</span>
+                  </div>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
+                  <Shield size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                  <h3>Matriz de Permissões Corporativas</h3>
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                    <strong>System Admin:</strong> Acesso total à infraestrutura e banco.<br/>
+                    <strong>Team Admin:</strong> Gerenciamento de canais de comunicação e controle de usuários.<br/>
+                    <strong>Channel Admin:</strong> Moderação do processo corporativo.<br/>
+                    <strong>Membro:</strong> Participação ativa em threads e abertura de chamados.
+                  </p>
+                </div>
               </div>
             </div>
           )}

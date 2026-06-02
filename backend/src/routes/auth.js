@@ -48,4 +48,48 @@ router.get('/me', verifyToken, async (req, res) => {
   }
 });
 
+// Registrar Usuário Corporativo
+router.post('/register', async (req, res) => {
+  try {
+    const { name, lastName, email, password } = req.body;
+    if (!name || !lastName || !email || !password) {
+      return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
+    }
+
+    // Validação estrita do domínio corporativo @modaverao.com.br
+    const corporateRegex = /^[a-zA-Z0-9._%+-]+@modaverao\.com\.br$/;
+    if (!corporateRegex.test(email.toLowerCase())) {
+      return res.status(400).json({ message: 'Cadastro permitido apenas para e-mails institucionais @modaverao.com.br.' });
+    }
+
+    // Verificar se o usuário já existe
+    const users = await dbService.getCollection('users');
+    const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (existing) {
+      return res.status(400).json({ message: 'Este e-mail já está cadastrado.' });
+    }
+
+    // Hash da senha
+    const salt = bcrypt.genSaltSync(10);
+    const passwordHash = bcrypt.hashSync(password, salt);
+
+    const newUser = await dbService.create('users', {
+      name,
+      lastName,
+      email: email.toLowerCase(),
+      password: passwordHash,
+      role: 'member', // Default role is member
+      companyId: 'comp-1', // Default company is Lojas Moda Verão
+      status: 'active'
+    });
+
+    await logAudit(newUser.id, `${newUser.name} ${newUser.lastName}`, 'register', 'users', newUser.id, 'Novo cadastro de usuário corporativo');
+
+    const { password: _, ...userWithoutPassword } = newUser;
+    res.status(201).json(userWithoutPassword);
+  } catch (err) {
+    res.status(500).json({ message: 'Erro ao cadastrar usuário' });
+  }
+});
+
 export default router;

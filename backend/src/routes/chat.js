@@ -5,34 +5,33 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 const router = express.Router();
 router.use(verifyToken);
 
-// Buscar salas e canais
+// Buscar salas e canais corporativos padronizados das Lojas Moda Verão
 router.get('/rooms', async (req, res) => {
   try {
     const user = await dbService.getById('users', req.user.id);
-    const projects = await dbService.getCollection('projects');
     const allUsers = await dbService.getCollection('users');
 
     const rooms = [];
 
-    // 1. Canal Geral da Empresa do usuário
-    const company = await dbService.getById('companies', user.companyId);
-    rooms.push({
-      id: `company-${user.companyId}`,
-      name: `Geral ${company ? company.tradingName : 'Empresa'}`,
-      type: 'company'
-    });
+    // 1. Canais Gerais (Gerais e Avisos)
+    rooms.push({ id: 'channel-geral', name: 'geral', type: 'general' });
+    rooms.push({ id: 'channel-avisos', name: 'avisos', type: 'general' });
 
-    // 2. Canais de Projetos daquela empresa
-    const companyProjects = projects.filter(p => p.companyId === user.companyId);
-    companyProjects.forEach(p => {
-      rooms.push({
-        id: `project-${p.id}`,
-        name: `Projeto: ${p.name}`,
-        type: 'project'
-      });
-    });
+    // 2. Canais de Processos (proc-*)
+    rooms.push({ id: 'channel-proc-defeitos', name: 'proc-defeitos', type: 'process' });
+    rooms.push({ id: 'channel-proc-divergencias', name: 'proc-divergencias', type: 'process' });
+    rooms.push({ id: 'channel-proc-verbas', name: 'proc-verbas', type: 'process' });
 
-    // 3. Conversas privadas com outros usuários
+    // 3. Canais de Departamentos (dep-*)
+    rooms.push({ id: 'channel-dep-ti', name: 'dep-ti', type: 'department' });
+    rooms.push({ id: 'channel-dep-rh', name: 'dep-rh', type: 'department' });
+    rooms.push({ id: 'channel-dep-compras', name: 'dep-compras', type: 'department' });
+
+    // 4. Canais de Lojas / Unidades (loja-*)
+    rooms.push({ id: 'channel-loja-01', name: 'loja-01', type: 'store' });
+    rooms.push({ id: 'channel-loja-02', name: 'loja-02', type: 'store' });
+
+    // 5. Conversas privadas (DM) com outros membros da equipe
     const otherUsers = allUsers.filter(u => u.id !== user.id && u.status === 'active');
     otherUsers.forEach(u => {
       rooms.push({

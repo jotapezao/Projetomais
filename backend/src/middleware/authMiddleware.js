@@ -17,7 +17,26 @@ export const verifyToken = (req, res, next) => {
 
 export const requireRole = (roles) => {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user) {
+      return res.status(403).json({ message: 'Permissão negada para esta ação.' });
+    }
+
+    // Mapeamento e compatibilidade de papéis corporativos
+    const mappedRoles = [...roles];
+    if (roles.includes('super_admin') || roles.includes('admin')) {
+      mappedRoles.push('system_admin', 'team_admin');
+    }
+    if (roles.includes('gestor')) {
+      mappedRoles.push('team_admin');
+    }
+    if (roles.includes('coordenador') || roles.includes('operador')) {
+      mappedRoles.push('channel_admin');
+    }
+    if (roles.includes('cliente')) {
+      mappedRoles.push('member');
+    }
+
+    if (!mappedRoles.includes(req.user.role)) {
       return res.status(403).json({ message: 'Permissão negada para esta ação.' });
     }
     next();

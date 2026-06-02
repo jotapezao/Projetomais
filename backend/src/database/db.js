@@ -53,11 +53,15 @@ export async function initializeDB() {
       );
     `);
 
-    // Verifica se já existem usuários (se o banco está vazio)
-    const { rows } = await pool.query(`SELECT 1 FROM data_store WHERE collection_name = 'users' LIMIT 1`);
+    // Verifica se já existe o usuário do João Paulo da Lojas Moda Verão
+    const { rows } = await pool.query(`SELECT 1 FROM data_store WHERE collection_name = 'users' AND data->>'email' = 'joaopaulo@modaverao.com.br' LIMIT 1`);
     
     if (rows.length === 0) {
-      console.log("Banco de dados vazio. Semeando dados iniciais...");
+      console.log("Banco de dados sem usuários de Lojas Moda Verão. Limpando e semeando dados específicos...");
+      
+      // Limpa os dados de teste antigos para evitar conflito de chaves e dados irrelevantes
+      await pool.query(`DELETE FROM data_store`);
+      
       const salt = bcrypt.genSaltSync(10);
       const passwordHash = bcrypt.hashSync('123456', salt);
       const now = new Date().toISOString();
@@ -65,39 +69,35 @@ export async function initializeDB() {
       const initialData = [
         {
           collection: 'companies',
-          data: { id: 'comp-1', legalName: 'Mais Tecnologia Interna Ltda', tradingName: 'Mais Tecnologia', cnpj: '12.345.678/0001-90', type: 'internal', status: 'active' }
-        },
-        {
-          collection: 'companies',
-          data: { id: 'comp-2', legalName: 'Indústrias Alpha S.A.', tradingName: 'Alpha Corp', cnpj: '98.765.432/0001-21', type: 'client', status: 'active' }
+          data: { id: 'comp-1', legalName: 'Lojas Moda Verão Ltda', tradingName: 'Lojas Moda Verão', cnpj: '12.345.678/0001-90', type: 'internal', status: 'active' }
         },
         {
           collection: 'users',
-          data: { id: 'usr-1', name: 'João Paulo', lastName: 'Administrador', email: 'admin@maistecnologia.com', role: 'super_admin', companyId: 'comp-1', password: passwordHash, status: 'active' }
+          data: { id: 'usr-1', name: 'João Paulo', lastName: 'TI (System Admin)', email: 'joaopaulo@modaverao.com.br', role: 'system_admin', companyId: 'comp-1', password: passwordHash, status: 'active' }
         },
         {
           collection: 'users',
-          data: { id: 'usr-2', name: 'Ana', lastName: 'Mendonça', email: 'gestor@maistecnologia.com', role: 'gestor', companyId: 'comp-1', password: passwordHash, status: 'active' }
+          data: { id: 'usr-2', name: 'Ana', lastName: 'Gerente (Team Admin)', email: 'gerente@modaverao.com.br', role: 'team_admin', companyId: 'comp-1', password: passwordHash, status: 'active' }
         },
         {
           collection: 'users',
-          data: { id: 'usr-4', name: 'Lucas', lastName: 'Operador', email: 'operador@maistecnologia.com', role: 'operador', companyId: 'comp-1', password: passwordHash, status: 'active' }
+          data: { id: 'usr-3', name: 'Carlos', lastName: 'Responsável (Channel Admin)', email: 'responsavel@modaverao.com.br', role: 'channel_admin', companyId: 'comp-1', password: passwordHash, status: 'active' }
         },
         {
           collection: 'users',
-          data: { id: 'usr-5', name: 'Carlos', lastName: 'Silva', email: 'cliente@alphacorp.com', role: 'cliente', companyId: 'comp-2', password: passwordHash, status: 'active' }
+          data: { id: 'usr-4', name: 'Lucas', lastName: 'Vendedor (Membro)', email: 'membro@modaverao.com.br', role: 'member', companyId: 'comp-1', password: passwordHash, status: 'active' }
         },
         {
           collection: 'projects',
-          data: { id: 'proj-1', name: 'Migração de Servidores Cloud', code: 'MSC-001', companyId: 'comp-1', managerId: 'usr-2', status: 'em_andamento', lists: ['Backlog', 'Planejada', 'Em andamento', 'Concluída'] }
+          data: { id: 'proj-1', name: 'Implantação Processo de Defeitos', code: 'IPD-001', companyId: 'comp-1', managerId: 'usr-2', status: 'em_andamento', description: 'Piloto do processo de defeitos na Loja 01 e expansão.', lists: ['Backlog', 'Planejada', 'Em andamento', 'Concluída'] }
         },
         {
           collection: 'tasks',
-          data: { id: 'tsk-1', title: 'Configurar VPC e Subnets na AWS', list: 'Em andamento', projectId: 'proj-1', companyId: 'comp-1', assigneeId: 'usr-4', priority: 'alta', status: 'em_andamento', checklist: [] }
+          data: { id: 'tsk-1', title: 'Criar documento oficial do processo de defeitos', list: 'Em andamento', projectId: 'proj-1', companyId: 'comp-1', assigneeId: 'usr-4', priority: 'alta', status: 'em_andamento', startDate: now.split('T')[0], deadline: new Date(Date.now() + 5*24*60*60*1000).toISOString().split('T')[0], checklist: [{ id: 'c1', text: 'Desenhar fluxograma', completed: false }, { id: 'c2', text: 'Obter aprovação do gerente', completed: false }] }
         },
         {
           collection: 'tickets',
-          data: { id: 'tkt-1', subject: 'Instabilidade no Servidor', category: 'TI', status: 'em_atendimento', priority: 'critica', slaEscalationTime: now, history: [], comments: [] }
+          data: { id: 'tkt-1', subject: 'Problema no POS da Loja 01', category: 'TI e Infraestrutura', status: 'em_atendimento', priority: 'critica', createdBy: 'usr-4', createdByName: 'Lucas', companyId: 'comp-1', description: 'Terminal de pagamentos da loja 01 está reiniciando sozinho ao processar débito.', slaEscalationTime: new Date(Date.now() + 4*60*60*1000).toISOString(), history: [{ status: 'novo', updatedAt: now, userId: 'usr-4', userName: 'Lucas Vendedor', comment: 'Abertura do chamado pelo POS' }], comments: [] }
         }
       ];
 
@@ -107,7 +107,7 @@ export async function initializeDB() {
           [item.collection, item.data.id, JSON.stringify(item.data)]
         );
       }
-      console.log("Dados iniciais inseridos com sucesso.");
+      console.log("Dados de Lojas Moda Verão inseridos com sucesso.");
     }
   } catch (err) {
     console.error("Erro ao inicializar o banco de dados:", err);
