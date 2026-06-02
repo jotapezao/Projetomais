@@ -39,6 +39,7 @@ import Tickets from './pages/Tickets';
 import Chat from './pages/Chat';
 import AdminPanel from './pages/AdminPanel';
 import Login from './pages/Login';
+import KnowledgeBase from './pages/KnowledgeBase';
 
 const ProtectedRoute = ({ children, user }) => {
   if (!user) return <Navigate to="/login" replace />;
@@ -179,7 +180,7 @@ function App() {
                     <Route path="/chamados" element={<Tickets />} />
                     <Route path="/chat" element={<Chat />} />
                     <Route path="/admin" element={<AdminPanel />} />
-                    <Route path="/conhecimento" element={<div className="glass-card" style={{ padding: '2rem' }}><h2>Base de Conhecimento</h2><p>Módulo em desenvolvimento.</p></div>} />
+                    <Route path="/conhecimento" element={<KnowledgeBase />} />
                   </Routes>
                 </div>
               </div>

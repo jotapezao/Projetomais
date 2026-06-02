@@ -29,6 +29,24 @@ router.post('/', async (req, res) => {
       history: [{ status: 'novo', updatedAt: new Date().toISOString(), userId: req.user.id, comment: 'Chamado aberto' }],
       comments: []
     }, req.user.id, req.user.name);
+
+    // Automation Trigger: ticket_created
+    try {
+      const automations = await dbService.getCollection('automations');
+      const createAuto = automations.find(a => a.trigger === 'ticket_created' && a.active);
+      if (createAuto) {
+        await dbService.create('simulated_emails', {
+          to: req.user.email || 'cliente@alphacorp.com',
+          subject: `Confirmação de Chamado Aberto: #${newTicket.id}`,
+          body: `Olá! Seu chamado "${newTicket.subject}" foi registrado no sistema sob o ID #${newTicket.id} com prioridade ${newTicket.priority}.`,
+          sentAt: new Date().toISOString(),
+          status: 'sent'
+        });
+      }
+    } catch (autoErr) {
+      console.error("Erro ao rodar automação de criação de chamado:", autoErr);
+    }
+
     res.status(201).json(newTicket);
   } catch (err) {
     res.status(500).json({ message: 'Erro no servidor' });

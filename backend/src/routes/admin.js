@@ -1,4 +1,5 @@
 import express from 'express';
+import nodemailer from 'nodemailer';
 import { dbService } from '../database/db.js';
 import { verifyToken, requireRole } from '../middleware/authMiddleware.js';
 
@@ -6,6 +7,7 @@ const router = express.Router();
 router.use(verifyToken);
 router.use(requireRole(['super_admin', 'admin']));
 
+// List logs
 router.get('/audit-logs', async (req, res) => {
   try {
     const logs = await dbService.getCollection('auditLogs');
@@ -15,6 +17,7 @@ router.get('/audit-logs', async (req, res) => {
   }
 });
 
+// Get email settings
 router.get('/email-settings', async (req, res) => {
   try {
     const settings = await dbService.getCollection('emailSettings');
@@ -24,19 +27,94 @@ router.get('/email-settings', async (req, res) => {
   }
 });
 
+// Create/Update email settings
 router.post('/email-settings', async (req, res) => {
   try {
-    const newSetting = await dbService.create('emailSettings', req.body, req.user.id, req.user.name);
-    res.status(201).json(newSetting);
+    const settings = await dbService.getCollection('emailSettings');
+    let saved;
+    if (settings.length > 0) {
+      saved = await dbService.update('emailSettings', settings[0].id, req.body, req.user.id, req.user.name);
+    } else {
+      saved = await dbService.create('emailSettings', req.body, req.user.id, req.user.name);
+    }
+    res.status(200).json(saved);
   } catch (err) {
     res.status(500).json({ message: 'Erro no servidor' });
   }
 });
 
+// Test SMTP Connection
+router.post('/email-settings/test', async (req, res) => {
+  const { smtpHost, smtpPort, smtpSecure, smtpUser, smtpPassword } = req.body;
+  if (!smtpHost || !smtpPort || !smtpUser || !smtpPassword) {
+    return res.status(400).json({ success: false, message: 'Parâmetros incompletos para teste.' });
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: Number(smtpPort),
+      secure: smtpSecure === true || smtpSecure === 'true',
+      auth: {
+        user: smtpUser,
+        pass: smtpPassword,
+      },
+      timeout: 5000 // 5 seconds timeout
+    });
+
+    await transporter.verify();
+    
+    // Log success test email
+    await dbService.create('simulated_emails', {
+      to: smtpUser,
+      subject: 'Teste de Conexão SMTP',
+      body: 'Sua configuração de SMTP do sistema de gestão foi validada com sucesso!',
+      sentAt: new Date().toISOString(),
+      status: 'success'
+    }, req.user.id, req.user.name);
+
+    res.json({ success: true, message: 'Conexão SMTP estabelecida e autenticada com sucesso!' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: `Falha na conexão SMTP: ${err.message}` });
+  }
+});
+
+// Get automations list
 router.get('/automations', async (req, res) => {
   try {
     const automations = await dbService.getCollection('automations');
+    // Seed standard automations if empty
+    if (automations.length === 0) {
+      const defaultAuto = [
+        { id: 'auto-1', name: 'Alerta SLA Crítico', trigger: 'ticket_priority_critical', action: 'send_email_manager', delayMinutes: 30, active: true },
+        { id: 'auto-2', name: 'Notificar Cliente Abertura', trigger: 'ticket_created', action: 'send_email_client', delayMinutes: 0, active: true }
+      ];
+      for (const auto of defaultAuto) {
+        await dbService.create('automations', auto);
+      }
+      return res.json(defaultAuto);
+    }
     res.json(automations);
+  } catch (err) {
+    res.status(500).json({ message: 'Erro no servidor' });
+  }
+});
+
+// Create automation
+router.post('/automations', async (req, res) => {
+  try {
+    const newAuto = await dbService.create('automations', req.body, req.user.id, req.user.name);
+    res.status(201).json(newAuto);
+  } catch (err) {
+    res.status(500).json({ message: 'Erro no servidor' });
+  }
+});
+
+// Toggle automation status
+router.put('/automations/:id', async (req, res) => {
+  try {
+    const updated = await dbService.update('automations', req.params.id, req.body, req.user.id, req.user.name);
+    res.json(updated);
   } catch (err) {
     res.status(500).json({ message: 'Erro no servidor' });
   }

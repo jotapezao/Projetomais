@@ -1,32 +1,121 @@
 import { useState, useEffect } from 'react';
-import { Settings, Shield, Mail, Zap, Server, Activity } from 'lucide-react';
+import { Settings, Shield, Mail, Zap, Server, Activity, Plus } from 'lucide-react';
 import client from '../api/client';
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('logs');
   const [logs, setLogs] = useState([]);
-  const [emailConfig, setEmailConfig] = useState(null);
+  const [automations, setAutomations] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [logsRes, emailRes] = await Promise.all([
-          client.get('/admin/audit-logs'),
-          client.get('/admin/email-settings')
-        ]);
-        setLogs(logsRes.data);
-        if (emailRes.data.length > 0) {
-          setEmailConfig(emailRes.data[0]);
-        }
-      } catch (error) {
-        console.error('Erro ao buscar dados admin', error);
-      } finally {
-        setLoading(false);
+  // Email Config State
+  const [smtpHost, setSmtpHost] = useState('');
+  const [smtpPort, setSmtpPort] = useState(587);
+  const [smtpSecure, setSmtpSecure] = useState(false);
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPassword, setSmtpPassword] = useState('');
+  
+  const [imapHost, setImapHost] = useState('');
+  const [imapPort, setImapPort] = useState(993);
+  const [imapSecure, setImapSecure] = useState(true);
+  const [imapUser, setImapUser] = useState('');
+  const [imapPassword, setImapPassword] = useState('');
+
+  const [testResult, setTestResult] = useState({ show: false, success: false, message: '' });
+  const [saveStatus, setSaveStatus] = useState('');
+
+  const fetchData = async () => {
+    try {
+      const [logsRes, emailRes, autoRes] = await Promise.all([
+        client.get('/admin/audit-logs'),
+        client.get('/admin/email-settings'),
+        client.get('/admin/automations')
+      ]);
+      
+      setLogs(logsRes.data);
+      setAutomations(autoRes.data);
+      
+      if (emailRes.data && emailRes.data.length > 0) {
+        const config = emailRes.data[0];
+        setSmtpHost(config.smtpHost || '');
+        setSmtpPort(config.smtpPort || 587);
+        setSmtpSecure(config.smtpSecure || false);
+        setSmtpUser(config.smtpUser || '');
+        setSmtpPassword(config.smtpPassword || '');
+        setImapHost(config.imapHost || '');
+        setImapPort(config.imapPort || 993);
+        setImapSecure(config.imapSecure || false);
+        setImapUser(config.imapUser || '');
+        setImapPassword(config.imapPassword || '');
       }
-    };
+    } catch (error) {
+      console.error('Erro ao buscar dados admin', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
+
+  const handleSaveEmailSettings = async () => {
+    setSaveStatus('Salvando...');
+    try {
+      await client.post('/admin/email-settings', {
+        smtpHost,
+        smtpPort: Number(smtpPort),
+        smtpSecure,
+        smtpUser,
+        smtpPassword,
+        imapHost,
+        imapPort: Number(imapPort),
+        imapSecure,
+        imapUser,
+        imapPassword
+      });
+      setSaveStatus('Configurações salvas com sucesso!');
+      setTimeout(() => setSaveStatus(''), 3000);
+    } catch (error) {
+      setSaveStatus('Erro ao salvar configurações.');
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setTestResult({ show: true, success: false, message: 'Testando conexão SMTP...' });
+    try {
+      const res = await client.post('/admin/email-settings/test', {
+        smtpHost,
+        smtpPort: Number(smtpPort),
+        smtpSecure,
+        smtpUser,
+        smtpPassword
+      });
+      setTestResult({
+        show: true,
+        success: res.data.success,
+        message: res.data.message
+      });
+    } catch (error) {
+      setTestResult({
+        show: true,
+        success: false,
+        message: error.response?.data?.message || 'Falha ao conectar no servidor SMTP.'
+      });
+    }
+  };
+
+  const handleToggleAutomation = async (auto) => {
+    const updatedAuto = { ...auto, active: !auto.active };
+    // Optimistic UI update
+    setAutomations(prev => prev.map(a => a.id === auto.id ? updatedAuto : a));
+    try {
+      await client.put(`/admin/automations/${auto.id}`, updatedAuto);
+    } catch (error) {
+      console.error('Erro ao atualizar automação', error);
+      fetchData(); // rollback
+    }
+  };
 
   if (loading) return <div style={{ padding: '2rem' }}>Carregando Administração...</div>;
 
@@ -78,7 +167,7 @@ export default function AdminPanel() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h2 style={{ fontSize: '1.25rem' }}>Auditoria do Sistema</h2>
-                <button className="btn btn-secondary">Exportar CSV</button>
+                <button className="btn btn-secondary" onClick={fetchData}>Atualizar</button>
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                 <thead>
@@ -112,83 +201,110 @@ export default function AdminPanel() {
           {activeTab === 'email' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h2 style={{ fontSize: '1.25rem' }}>Configuração de E-mails (SMTP/POP/IMAP)</h2>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <button className="btn btn-secondary">Testar Conexão</button>
-                  <button className="btn btn-primary">Salvar Configurações</button>
+                <h2 style={{ fontSize: '1.25rem' }}>Configuração de E-mails (SMTP/IMAP)</h2>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  {saveStatus && <span style={{ fontSize: '0.9rem', color: 'hsl(var(--accent-primary))' }}>{saveStatus}</span>}
+                  <button className="btn btn-secondary" onClick={handleTestConnection}>Testar Conexão</button>
+                  <button className="btn btn-primary" onClick={handleSaveEmailSettings}>Salvar Configurações</button>
                 </div>
               </div>
-              
-              {emailConfig ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                  
-                  {/* SMTP */}
-                  <div className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))' }}>
-                    <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Server size={18}/> Saída (SMTP)</h3>
-                    <div className="input-group">
-                      <label className="input-label">Servidor SMTP</label>
-                      <input type="text" className="input-field" defaultValue={emailConfig.smtpHost} />
-                    </div>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                      <div className="input-group" style={{ flex: 1 }}>
-                        <label className="input-label">Porta</label>
-                        <input type="number" className="input-field" defaultValue={emailConfig.smtpPort} />
-                      </div>
-                      <div className="input-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
-                        <input type="checkbox" defaultChecked={emailConfig.smtpSecure} />
-                        <label className="input-label" style={{ margin: 0 }}>Usar SSL/TLS</label>
-                      </div>
-                    </div>
-                    <div className="input-group">
-                      <label className="input-label">Usuário</label>
-                      <input type="text" className="input-field" defaultValue={emailConfig.smtpUser} />
-                    </div>
-                    <div className="input-group">
-                      <label className="input-label">Senha</label>
-                      <input type="password" className="input-field" defaultValue={emailConfig.smtpPassword} />
-                    </div>
-                  </div>
 
-                  {/* IMAP */}
-                  <div className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))' }}>
-                    <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Server size={18}/> Entrada (IMAP)</h3>
-                    <div className="input-group">
-                      <label className="input-label">Servidor IMAP</label>
-                      <input type="text" className="input-field" defaultValue={emailConfig.imapHost} />
-                    </div>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                      <div className="input-group" style={{ flex: 1 }}>
-                        <label className="input-label">Porta</label>
-                        <input type="number" className="input-field" defaultValue={emailConfig.imapPort} />
-                      </div>
-                      <div className="input-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
-                        <input type="checkbox" defaultChecked={emailConfig.imapSecure} />
-                        <label className="input-label" style={{ margin: 0 }}>Usar SSL/TLS</label>
-                      </div>
-                    </div>
-                    <div className="input-group">
-                      <label className="input-label">Usuário</label>
-                      <input type="text" className="input-field" defaultValue={emailConfig.imapUser} />
-                    </div>
-                    <div className="input-group">
-                      <label className="input-label">Senha</label>
-                      <input type="password" className="input-field" defaultValue={emailConfig.imapPassword} />
-                    </div>
-                  </div>
-
+              {testResult.show && (
+                <div className={`badge ${testResult.success ? 'badge-success' : 'badge-danger'}`} style={{ width: '100%', padding: '1rem', marginBottom: '1.5rem', display: 'block', borderRadius: 'var(--radius-md)', textTransform: 'none' }}>
+                  {testResult.message}
                 </div>
-              ) : (
-                <p>Nenhuma configuração encontrada.</p>
               )}
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                
+                {/* SMTP */}
+                <div className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))' }}>
+                  <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Server size={18}/> Saída (SMTP)</h3>
+                  <div className="input-group">
+                    <label className="input-label">Servidor SMTP</label>
+                    <input type="text" className="input-field" value={smtpHost} onChange={e => setSmtpHost(e.target.value)} placeholder="mail.example.com" />
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div className="input-group" style={{ flex: 1 }}>
+                      <label className="input-label">Porta</label>
+                      <input type="number" className="input-field" value={smtpPort} onChange={e => setSmtpPort(e.target.value)} />
+                    </div>
+                    <div className="input-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+                      <input type="checkbox" checked={smtpSecure} onChange={e => setSmtpSecure(e.target.checked)} />
+                      <label className="input-label" style={{ margin: 0 }}>Usar SSL/TLS</label>
+                    </div>
+                  </div>
+                  <div className="input-group">
+                    <label className="input-label">Usuário</label>
+                    <input type="text" className="input-field" value={smtpUser} onChange={e => setSmtpUser(e.target.value)} placeholder="smtp@example.com" />
+                  </div>
+                  <div className="input-group">
+                    <label className="input-label">Senha</label>
+                    <input type="password" className="input-field" value={smtpPassword} onChange={e => setSmtpPassword(e.target.value)} placeholder="******" />
+                  </div>
+                </div>
+
+                {/* IMAP */}
+                <div className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))' }}>
+                  <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Server size={18}/> Entrada (IMAP)</h3>
+                  <div className="input-group">
+                    <label className="input-label">Servidor IMAP</label>
+                    <input type="text" className="input-field" value={imapHost} onChange={e => setImapHost(e.target.value)} placeholder="imap.example.com" />
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div className="input-group" style={{ flex: 1 }}>
+                      <label className="input-label">Porta</label>
+                      <input type="number" className="input-field" value={imapPort} onChange={e => setImapPort(e.target.value)} />
+                    </div>
+                    <div className="input-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+                      <input type="checkbox" checked={imapSecure} onChange={e => setImapSecure(e.target.checked)} />
+                      <label className="input-label" style={{ margin: 0 }}>Usar SSL/TLS</label>
+                    </div>
+                  </div>
+                  <div className="input-group">
+                    <label className="input-label">Usuário</label>
+                    <input type="text" className="input-field" value={imapUser} onChange={e => setImapUser(e.target.value)} placeholder="imap@example.com" />
+                  </div>
+                  <div className="input-group">
+                    <label className="input-label">Senha</label>
+                    <input type="password" className="input-field" value={imapPassword} onChange={e => setImapPassword(e.target.value)} placeholder="******" />
+                  </div>
+                </div>
+
+              </div>
             </div>
           )}
 
           {activeTab === 'automations' && (
             <div>
-              <h2 style={{ fontSize: '1.25rem', marginBottom: '2rem' }}>Regras de Automação</h2>
-              <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
-                <Zap size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                <p>O construtor visual de automações estará disponível na próxima atualização (Módulo IF/THEN).</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '1.25rem' }}>Regras de Automação Ativas</h2>
+                <button className="btn btn-primary"><Plus size={18} /> Nova Regra</button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {automations.map(auto => (
+                  <div key={auto.id} className="glass-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'hsl(var(--bg-secondary))' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{auto.name}</h3>
+                      <p style={{ fontSize: '0.85rem', color: 'hsl(var(--text-secondary))', margin: 0 }}>
+                        Gatilho: <strong style={{ color: '#fff' }}>{auto.trigger}</strong> | Ação: <strong style={{ color: '#fff' }}>{auto.action}</strong>
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <span className={`badge ${auto.active ? 'badge-success' : 'badge-danger'}`}>
+                        {auto.active ? 'Ativa' : 'Inativa'}
+                      </span>
+                      <button 
+                        className={`btn ${auto.active ? 'btn-secondary' : 'btn-primary'}`} 
+                        onClick={() => handleToggleAutomation(auto)}
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
+                      >
+                        {auto.active ? 'Desativar' : 'Ativar'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -198,7 +314,8 @@ export default function AdminPanel() {
               <h2 style={{ fontSize: '1.25rem', marginBottom: '2rem' }}>Controle de Acesso (RBAC)</h2>
               <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
                 <Shield size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                <p>Gestão de Perfis de Acesso e Permissões Granulares.</p>
+                <h3>Perfis de Usuários</h3>
+                <p style={{ marginTop: '0.5rem' }}>Gestão granular e edição de papéis (super_admin, admin, gestor, coordenador, operador, cliente).</p>
               </div>
             </div>
           )}

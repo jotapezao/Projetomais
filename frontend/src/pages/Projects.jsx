@@ -161,12 +161,143 @@ export default function Projects() {
         )}
 
         {view === 'gantt' && (
-          <div className="glass-card" style={{ width: '100%', padding: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center' }}>
-              <CalendarIcon size={48} color="hsl(var(--text-muted))" style={{ marginBottom: '1rem' }} />
-              <h3>Visualização de Cronograma (Gantt)</h3>
-              <p style={{ color: 'hsl(var(--text-secondary))' }}>Módulo de renderização de calendário em desenvolvimento para a próxima versão.</p>
-            </div>
+          <div className="glass-card" style={{ width: '100%', padding: '2rem', overflowX: 'auto' }}>
+            {projectTasks.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: 'hsl(var(--text-muted))' }}>
+                <CalendarIcon size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                <h3>Sem Tarefas</h3>
+                <p>Crie tarefas com datas de início e prazo para visualizar o cronograma.</p>
+              </div>
+            ) : (() => {
+              // Calculate timeline boundaries
+              const today = new Date();
+              const dates = projectTasks.map(t => ({
+                start: t.startDate ? new Date(t.startDate) : new Date(t.createdAt || today),
+                end: t.deadline ? new Date(t.deadline) : new Date(new Date(t.createdAt || today).getTime() + 7 * 24 * 60 * 60 * 1000)
+              }));
+              
+              const minDate = new Date(Math.min(...dates.map(d => d.start.getTime())) - 2 * 24 * 60 * 60 * 1000); // 2 days buffer
+              const maxDate = new Date(Math.max(...dates.map(d => d.end.getTime())) + 5 * 24 * 60 * 60 * 1000); // 5 days buffer
+              
+              const totalDays = Math.ceil((maxDate.getTime() - minDate.getTime()) / (24 * 60 * 60 * 1000));
+              
+              // Generate headers
+              const dayHeaders = [];
+              const currentDate = new Date(minDate);
+              for (let i = 0; i < totalDays; i++) {
+                dayHeaders.push(new Date(currentDate));
+                currentDate.setDate(currentDate.getDate() + 1);
+              }
+
+              return (
+                <div style={{ minWidth: '800px' }}>
+                  <h3 style={{ marginBottom: '1.5rem' }}>Cronograma de Atividades</h3>
+                  
+                  {/* Timeline Container */}
+                  <div style={{ border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius-md)', background: 'hsl(var(--bg-secondary))', overflow: 'hidden' }}>
+                    
+                    {/* Header Row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr', borderBottom: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-card))' }}>
+                      <div style={{ padding: '1rem', fontWeight: 'bold', borderRight: '1px solid hsl(var(--border))' }}>Tarefa</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${totalDays}, minmax(40px, 1fr))`, overflowX: 'auto' }}>
+                        {dayHeaders.map((date, idx) => {
+                          const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                          return (
+                            <div 
+                              key={idx} 
+                              style={{ 
+                                padding: '0.5rem 0', 
+                                textAlign: 'center', 
+                                fontSize: '0.75rem', 
+                                borderRight: '1px solid hsla(var(--border), 0.5)',
+                                color: isWeekend ? 'hsl(var(--text-muted))' : 'hsl(var(--text-secondary))',
+                                background: isWeekend ? 'hsla(var(--border), 0.1)' : 'transparent'
+                              }}
+                            >
+                              <div>{date.toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
+                              <div style={{ fontWeight: 'bold' }}>{date.getDate()}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Task Rows */}
+                    {projectTasks.map(task => {
+                      const taskStart = task.startDate ? new Date(task.startDate) : new Date(task.createdAt || today);
+                      const taskEnd = task.deadline ? new Date(task.deadline) : new Date(new Date(task.createdAt || today).getTime() + 7 * 24 * 60 * 60 * 1000);
+                      
+                      // Calculate offsets
+                      const startOffset = Math.max(0, Math.floor((taskStart.getTime() - minDate.getTime()) / (24 * 60 * 60 * 1000)));
+                      const duration = Math.max(1, Math.ceil((taskEnd.getTime() - taskStart.getTime()) / (24 * 60 * 60 * 1000)));
+                      
+                      // Calculate checklist progress
+                      const checklistTotal = task.checklist?.length || 0;
+                      const checklistDone = task.checklist?.filter(c => c.completed).length || 0;
+                      const progress = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : (task.list === 'Concluída' ? 100 : 0);
+
+                      return (
+                        <div 
+                          key={task.id} 
+                          style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '250px 1fr', 
+                            borderBottom: '1px solid hsla(var(--border), 0.5)',
+                            alignItems: 'center'
+                          }}
+                        >
+                          {/* Task Name & Details */}
+                          <div style={{ padding: '1rem', borderRight: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-card))' }}>
+                            <div style={{ fontWeight: '500', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{task.title}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>
+                              De: {taskStart.toLocaleDateString()} Até: {taskEnd.toLocaleDateString()}
+                            </div>
+                          </div>
+
+                          {/* Bar view */}
+                          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${totalDays}, minmax(40px, 1fr))`, height: '100%', position: 'relative', alignItems: 'center' }}>
+                            
+                            {/* Grid vertical gridlines */}
+                            {Array.from({ length: totalDays }).map((_, idx) => (
+                              <div key={idx} style={{ height: '100%', borderRight: '1px solid hsla(var(--border), 0.25)', position: 'absolute', left: `${(idx / totalDays) * 100}%`, width: '1px', zIndex: 0 }} />
+                            ))}
+
+                            {/* Gantt Bar */}
+                            <div 
+                              style={{ 
+                                gridColumnStart: startOffset + 1, 
+                                gridColumnEnd: Math.min(totalDays + 1, startOffset + duration + 1),
+                                background: 'linear-gradient(90deg, hsl(var(--accent-primary)), hsl(var(--accent-primary-hover)))',
+                                height: '32px',
+                                borderRadius: 'var(--radius-sm)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '0 0.75rem',
+                                color: '#fff',
+                                fontSize: '0.8rem',
+                                fontWeight: '500',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                position: 'relative',
+                                zIndex: 1,
+                                boxShadow: 'var(--shadow-sm)'
+                              }}
+                              title={`${task.title} (${progress}% concluída)`}
+                            >
+                              {/* Progress bar inside the bar */}
+                              <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress}%`, background: 'hsla(var(--success-light), 0.45)', transition: 'width 0.3s ease', zIndex: -1 }} />
+                              <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)', zIndex: 1 }}>{progress}%</span>
+                            </div>
+
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })())}
           </div>
         )}
       </div>
