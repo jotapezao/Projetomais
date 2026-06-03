@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Plus, LayoutGrid, List as ListIcon, Calendar as CalendarIcon, CheckSquare, X, Trash2, Edit, User as UserIcon } from 'lucide-react';
+import { Plus, LayoutGrid, List as ListIcon, Calendar as CalendarIcon, CheckSquare, X, Trash2 } from 'lucide-react';
 import client from '../api/client';
+
+const readTokenPayload = () => {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+};
 
 export default function Projects() {
   const [projects, setProjects] = useState([]);
@@ -9,7 +19,7 @@ export default function Projects() {
   const [activeProject, setActiveProject] = useState(null);
   const [view, setView] = useState('kanban'); // 'kanban', 'list', 'gantt'
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser] = useState(() => readTokenPayload());
 
   // Modals
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -54,16 +64,9 @@ export default function Projects() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setCurrentUser(payload);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    fetchAllData();
+    Promise.resolve().then(() => {
+      void fetchAllData();
+    });
   }, []);
 
   const handleCreateProject = async (e) => {

@@ -2,26 +2,23 @@ import { useState, useEffect, useRef } from 'react';
 import { Send, Paperclip, Hash, User, Smile } from 'lucide-react';
 import client from '../api/client';
 
+const readTokenUserId = () => {
+  const token = localStorage.getItem('token');
+  if (!token) return '';
+  try {
+    return JSON.parse(atob(token.split('.')[1])).id || '';
+  } catch {
+    return '';
+  }
+};
+
 export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [activeRoom, setActiveRoom] = useState(null);
   const [newMessage, setNewMessage] = useState('');
-  const [currentUserId, setCurrentUserId] = useState('');
+  const [currentUserId] = useState(() => readTokenUserId());
   const messagesEndRef = useRef(null);
-
-  // Load user info from token
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setCurrentUserId(payload.id);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  }, []);
 
   // Fetch rooms on mount
   useEffect(() => {

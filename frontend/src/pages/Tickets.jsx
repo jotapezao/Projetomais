@@ -1,6 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Ticket as TicketIcon, Search, AlertCircle, Clock, CheckCircle, Plus, X, MessageSquare, Shield } from 'lucide-react';
 import client from '../api/client';
+
+const readTokenPayload = () => {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+};
 
 export default function Tickets() {
   const [tickets, setTickets] = useState([]);
@@ -8,7 +18,7 @@ export default function Tickets() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
-  const [user, setUser] = useState(null);
+  const [user] = useState(() => readTokenPayload());
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -23,7 +33,7 @@ export default function Tickets() {
   const [newCatName, setNewCatName] = useState('');
   const [newComment, setNewComment] = useState('');
 
-  const fetchTicketsAndCategories = async () => {
+  const fetchTicketsAndCategories = useCallback(async () => {
     try {
       const [ticketRes, catRes] = await Promise.all([
         client.get('/tickets'),
@@ -39,21 +49,13 @@ export default function Tickets() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [category]);
 
   useEffect(() => {
-    // Get user info from local token
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUser(payload);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    fetchTicketsAndCategories();
-  }, []);
+    Promise.resolve().then(() => {
+      void fetchTicketsAndCategories();
+    });
+  }, [fetchTicketsAndCategories]);
 
   const handleCreateTicket = async (e) => {
     e.preventDefault();

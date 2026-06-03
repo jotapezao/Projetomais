@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, Mail, ArrowRight, ShieldCheck, User } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
 import client from '../api/client';
 
 export default function Login({ onLogin }) {

@@ -22,7 +22,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } f
 import { 
   LayoutDashboard, 
   Briefcase, 
-  CheckSquare, 
   Ticket, 
   MessageSquare, 
   BookOpen, 
@@ -139,7 +138,7 @@ function App() {
         try {
           const res = await client.get('/auth/me');
           setUser(res.data);
-        } catch (error) {
+        } catch {
           localStorage.removeItem('token');
         }
       }

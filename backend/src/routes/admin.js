@@ -1,6 +1,6 @@
 import express from 'express';
 import nodemailer from 'nodemailer';
-import { dbService } from '../database/db.js';
+import { dbService, normalizeEmailSettings, secureEmailSettings } from '../database/db.js';
 import { verifyToken, requireRole } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -21,7 +21,18 @@ router.get('/audit-logs', async (req, res) => {
 router.get('/email-settings', async (req, res) => {
   try {
     const settings = await dbService.getCollection('emailSettings');
-    res.json(settings);
+    if (settings.length === 0) {
+      return res.json([]);
+    }
+
+    const current = normalizeEmailSettings(settings[0]);
+    res.json([{
+      ...current,
+      smtpPassword: '',
+      imapPassword: '',
+      hasSmtpPassword: Boolean(current.smtpPassword),
+      hasImapPassword: Boolean(current.imapPassword)
+    }]);
   } catch (err) {
     res.status(500).json({ message: 'Erro no servidor' });
   }
@@ -31,13 +42,27 @@ router.get('/email-settings', async (req, res) => {
 router.post('/email-settings', async (req, res) => {
   try {
     const settings = await dbService.getCollection('emailSettings');
+    const current = settings[0] ? normalizeEmailSettings(settings[0]) : {};
+    const incoming = {
+      ...req.body,
+      smtpPassword: req.body.smtpPassword || current.smtpPassword || '',
+      imapPassword: req.body.imapPassword || current.imapPassword || ''
+    };
+    const securePayload = secureEmailSettings(incoming);
     let saved;
     if (settings.length > 0) {
-      saved = await dbService.update('emailSettings', settings[0].id, req.body, req.user.id, req.user.name);
+      saved = await dbService.update('emailSettings', settings[0].id, securePayload, req.user.id, req.user.name);
     } else {
-      saved = await dbService.create('emailSettings', req.body, req.user.id, req.user.name);
+      saved = await dbService.create('emailSettings', securePayload, req.user.id, req.user.name);
     }
-    res.status(200).json(saved);
+    const normalized = normalizeEmailSettings(saved);
+    res.status(200).json({
+      ...normalized,
+      smtpPassword: '',
+      imapPassword: '',
+      hasSmtpPassword: Boolean(normalized.smtpPassword),
+      hasImapPassword: Boolean(normalized.imapPassword)
+    });
   } catch (err) {
     res.status(500).json({ message: 'Erro no servidor' });
   }

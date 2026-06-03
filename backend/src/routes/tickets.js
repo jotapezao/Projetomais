@@ -111,6 +111,11 @@ router.post('/', async (req, res) => {
 // Atualizar chamado completo
 router.put('/:id', async (req, res) => {
   try {
+    const existing = await dbService.getById('tickets', req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Chamado não encontrado' });
+    if (req.user.role !== 'super_admin' && existing.companyId !== req.user.companyId) {
+      return res.status(403).json({ message: 'Você não tem permissão para editar este chamado.' });
+    }
     const updated = await dbService.update('tickets', req.params.id, req.body, req.user.id, req.user.name);
     if (!updated) return res.status(404).json({ message: 'Chamado não encontrado' });
     res.json(updated);
@@ -125,6 +130,9 @@ router.patch('/:id/status', async (req, res) => {
     const { status, comment } = req.body;
     const ticket = await dbService.getById('tickets', req.params.id);
     if (!ticket) return res.status(404).json({ message: 'Chamado não encontrado' });
+    if (req.user.role !== 'super_admin' && ticket.companyId !== req.user.companyId) {
+      return res.status(403).json({ message: 'Você não tem permissão para alterar este chamado.' });
+    }
 
     ticket.status = status;
     ticket.history = ticket.history || [];
@@ -148,6 +156,9 @@ router.post('/:id/comments', async (req, res) => {
   try {
     const ticket = await dbService.getById('tickets', req.params.id);
     if (!ticket) return res.status(404).json({ message: 'Chamado não encontrado' });
+    if (req.user.role !== 'super_admin' && ticket.companyId !== req.user.companyId) {
+      return res.status(403).json({ message: 'Você não tem permissão para comentar neste chamado.' });
+    }
 
     const newComment = {
       id: `c-${Date.now()}`,

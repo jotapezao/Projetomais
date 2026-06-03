@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Settings, Shield, Mail, Zap, Server, Activity, Plus, Database, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Shield, Mail, Zap, Server, Activity, Plus, Database, CheckCircle } from 'lucide-react';
 import client from '../api/client';
 
 export default function AdminPanel() {
@@ -26,7 +26,7 @@ export default function AdminPanel() {
   const [saveStatus, setSaveStatus] = useState('');
   const [backupStatus, setBackupStatus] = useState('');
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [logsRes, emailRes, autoRes, backupRes] = await Promise.all([
         client.get('/admin/audit-logs'),
@@ -45,23 +45,26 @@ export default function AdminPanel() {
         setSmtpPort(config.smtpPort || 587);
         setSmtpSecure(config.smtpSecure || false);
         setSmtpUser(config.smtpUser || '');
-        setSmtpPassword(config.smtpPassword || '');
+        setSmtpPassword('');
         setImapHost(config.imapHost || '');
         setImapPort(config.imapPort || 993);
         setImapSecure(config.imapSecure || false);
         setImapUser(config.imapUser || '');
-        setImapPassword(config.imapPassword || '');
+        setImapPassword('');
       }
     } catch (error) {
       console.error('Erro ao buscar dados admin', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const init = async () => {
+      await fetchData();
+    };
+    void init();
+  }, [fetchData]);
 
   const handleSaveEmailSettings = async () => {
     setSaveStatus('Salvando...');
@@ -80,7 +83,7 @@ export default function AdminPanel() {
       });
       setSaveStatus('Configurações salvas com sucesso!');
       setTimeout(() => setSaveStatus(''), 3000);
-    } catch (error) {
+    } catch {
       setSaveStatus('Erro ao salvar configurações.');
     }
   };
@@ -127,7 +130,7 @@ export default function AdminPanel() {
       setBackupStatus('Restauração validada com sucesso!');
       setBackupTests(prev => [res.data, ...prev]);
       setTimeout(() => setBackupStatus(''), 4000);
-    } catch (error) {
+    } catch {
       setBackupStatus('Falha ao rodar teste de restauração.');
       setTimeout(() => setBackupStatus(''), 4000);
     }
@@ -402,14 +405,14 @@ export default function AdminPanel() {
                 
                 <div className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))' }}>
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Configurações de Acesso</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'hsl(var(--bg-card))', borderRadius: 'var(--radius-md)' }}>
-                    <div>
-                      <h4 style={{ fontSize: '0.95rem', margin: 0 }}>MFA (Autenticação de Dois Fatores) Obrigatório</h4>
-                      <p style={{ fontSize: '0.8rem', color: 'hsl(var(--text-secondary))', margin: 0 }}>Exigir segundo fator de autenticação para administradores (System Admin e Team Admin).</p>
-                    </div>
-                    <span className="badge badge-success">Ativado</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'hsl(var(--bg-card))', borderRadius: 'var(--radius-md)' }}>
+                  <div>
+                      <h4 style={{ fontSize: '0.95rem', margin: 0 }}>MFA (Autenticação de Dois Fatores)</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'hsl(var(--text-secondary))', margin: 0 }}>Estrutura pronta para evolução. O segundo fator ainda deve ser conectado a um provedor real de código ou app autenticador.</p>
                   </div>
+                    <span className="badge badge-warning">Planejado</span>
                 </div>
+              </div>
 
                 <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
                   <Shield size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />

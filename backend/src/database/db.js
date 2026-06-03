@@ -25,9 +25,40 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 dotenv.config();
 
 let pool;
+
+function getSecretKey() {
+  const seed = process.env.DATA_ENCRYPTION_KEY || process.env.JWT_SECRET || 'supersecret_gestao_2026';
+  return crypto.createHash('sha256').update(seed).digest();
+}
+
+function encryptSecret(value) {
+  if (!value) return '';
+  const iv = crypto.randomBytes(12);
+  const key = getSecretKey();
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(String(value), 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `enc:${iv.toString('base64')}:${tag.toString('base64')}:${encrypted.toString('base64')}`;
+}
+
+function decryptSecret(value) {
+  if (!value || typeof value !== 'string' || !value.startsWith('enc:')) return value || '';
+  const [, ivB64, tagB64, encryptedB64] = value.split(':');
+  const key = getSecretKey();
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivB64, 'base64'));
+  decipher.setAuthTag(Buffer.from(tagB64, 'base64'));
+  const decrypted = Buffer.concat([
+    decipher.update(Buffer.from(encryptedB64, 'base64')),
+    decipher.final()
+  ]);
+  return decrypted.toString('utf8');
+}
+
+export { encryptSecret, decryptSecret };
 
 if (process.env.DATABASE_URL) {
   pool = new Pool({
@@ -53,15 +84,14 @@ export async function initializeDB() {
       );
     `);
 
-    // Verifica se já existe o usuário do João Paulo da Lojas Moda Verão
-    const { rows } = await pool.query(`SELECT 1 FROM data_store WHERE collection_name = 'users' AND data->>'email' = 'joaopaulo@modaverao.com.br' LIMIT 1`);
-    
-    if (rows.length === 0) {
-      console.log("Banco de dados sem usuários de Lojas Moda Verão. Limpando e semeando dados específicos...");
-      
-      // Limpa os dados de teste antigos para evitar conflito de chaves e dados irrelevantes
-      await pool.query(`DELETE FROM data_store`);
-      
+    // Seed mínimo apenas quando a base estiver vazia para não destruir dados em produção.
+    const { rows: companyRows } = await pool.query(
+      `SELECT 1 FROM data_store WHERE collection_name = 'companies' LIMIT 1`
+    );
+
+    if (companyRows.length === 0) {
+      console.log("Banco vazio. Inserindo dados iniciais da demonstração...");
+
       const salt = bcrypt.genSaltSync(10);
       const passwordHash = bcrypt.hashSync('123456', salt);
       const now = new Date().toISOString();
@@ -102,21 +132,30 @@ export async function initializeDB() {
       ];
 
       for (const item of initialData) {
+        const exists = await pool.query(
+          `SELECT 1 FROM data_store WHERE collection_name = $1 AND id = $2 LIMIT 1`,
+          [item.collection, item.data.id]
+        );
+
+        if (exists.rows.length > 0) {
+          continue;
+        }
+
         await pool.query(
           `INSERT INTO data_store (collection_name, id, data) VALUES ($1, $2, $3)`,
           [item.collection, item.data.id, JSON.stringify(item.data)]
         );
       }
-      console.log("Dados de Lojas Moda Verão inseridos com sucesso.");
+      console.log("Dados iniciais inseridos com sucesso.");
     }
   } catch (err) {
     console.error("Erro ao inicializar o banco de dados:", err);
   }
 }
 
-export async function logAudit(userId, userName, action, entity, entityId, details, ip = '127.0.0.1') {
+export async function logAudit(userId, userName, action, entity, entityId, details, ip = '127.0.0.1', companyId = null) {
   const logId = `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  const logData = { id: logId, userId, userName, action, entity, entityId, ip, details, timestamp: new Date().toISOString() };
+  const logData = { id: logId, userId, userName, action, entity, entityId, ip, details, companyId, timestamp: new Date().toISOString() };
   
   if (pool) {
     await pool.query(
@@ -151,7 +190,8 @@ export const dbService = {
       `INSERT INTO data_store (collection_name, id, data) VALUES ($1, $2, $3)`,
       [collectionName, newId, JSON.stringify(newRecord)]
     );
-    await logAudit(executorId, executorName, 'create', collectionName, newId, `Criado registro em ${collectionName}`);
+    const executor = executorId === 'system' ? null : await this.getById('users', executorId);
+    await logAudit(executorId, executorName, 'create', collectionName, newId, `Criado registro em ${collectionName}`, '127.0.0.1', executor?.companyId || data.companyId || null);
     return newRecord;
   },
 
@@ -165,7 +205,8 @@ export const dbService = {
       `UPDATE data_store SET data = $1 WHERE collection_name = $2 AND id = $3`,
       [JSON.stringify(updatedRecord), collectionName, id]
     );
-    await logAudit(executorId, executorName, 'update', collectionName, id, `Atualizado registro em ${collectionName}`);
+    const executor = executorId === 'system' ? null : await this.getById('users', executorId);
+    await logAudit(executorId, executorName, 'update', collectionName, id, `Atualizado registro em ${collectionName}`, '127.0.0.1', executor?.companyId || updatedRecord.companyId || null);
     return updatedRecord;
   },
 
@@ -173,9 +214,26 @@ export const dbService = {
     if (!pool) return false;
     const res = await pool.query(`DELETE FROM data_store WHERE collection_name = $1 AND id = $2`, [collectionName, id]);
     if (res.rowCount > 0) {
-      await logAudit(executorId, executorName, 'delete', collectionName, id, `Excluído registro em ${collectionName}`);
+      const executor = executorId === 'system' ? null : await this.getById('users', executorId);
+      await logAudit(executorId, executorName, 'delete', collectionName, id, `Excluído registro em ${collectionName}`, '127.0.0.1', executor?.companyId || null);
       return true;
     }
     return false;
   }
 };
+
+export function normalizeEmailSettings(record = {}) {
+  return {
+    ...record,
+    smtpPassword: decryptSecret(record.smtpPassword),
+    imapPassword: decryptSecret(record.imapPassword)
+  };
+}
+
+export function secureEmailSettings(data = {}) {
+  return {
+    ...data,
+    smtpPassword: encryptSecret(data.smtpPassword),
+    imapPassword: encryptSecret(data.imapPassword)
+  };
+}

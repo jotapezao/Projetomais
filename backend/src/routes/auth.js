@@ -22,7 +22,7 @@ router.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role, name: `${user.name} ${user.lastName}` },
+      { id: user.id, email: user.email, role: user.role, name: `${user.name} ${user.lastName}`, companyId: user.companyId },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -54,6 +54,10 @@ router.post('/register', async (req, res) => {
     const { name, lastName, email, password } = req.body;
     if (!name || !lastName || !email || !password) {
       return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
+    }
+
+    if (String(password).length < 6) {
+      return res.status(400).json({ message: 'A senha deve ter no mínimo 6 caracteres.' });
     }
 
     // Validação estrita do domínio corporativo @modaverao.com.br

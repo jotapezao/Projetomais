@@ -27,6 +27,7 @@ import ticketRoutes from './src/routes/tickets.js';
 import adminRoutes from './src/routes/admin.js';
 import knowledgeRoutes from './src/routes/knowledge.js';
 import chatRoutes from './src/routes/chat.js';
+import dashboardRoutes from './src/routes/dashboard.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,7 +37,14 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+const corsOptions = process.env.CORS_ORIGIN
+  ? {
+      origin: process.env.CORS_ORIGIN.split(',').map((item) => item.trim()),
+      credentials: true
+    }
+  : {};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes
@@ -47,6 +55,7 @@ app.use('/api/tickets', ticketRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // ... (existing mock routes)
 app.get('/api/emails/simulated', (req, res) => res.json([]));

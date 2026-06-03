@@ -2,13 +2,23 @@ import { useState, useEffect } from 'react';
 import { Search, Plus, BookOpen, Tag, ChevronRight, ArrowLeft, Trash2, Edit } from 'lucide-react';
 import client from '../api/client';
 
+const readUserRole = () => {
+  const token = localStorage.getItem('token');
+  if (!token) return '';
+  try {
+    return JSON.parse(atob(token.split('.')[1])).role || '';
+  } catch {
+    return '';
+  }
+};
+
 export default function KnowledgeBase() {
   const [articles, setArticles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [userRole, setUserRole] = useState('');
+  const [userRole] = useState(() => readUserRole());
   const [loading, setLoading] = useState(true);
 
   // Form State
@@ -31,17 +41,9 @@ export default function KnowledgeBase() {
   };
 
   useEffect(() => {
-    // Get role from decoded token/user logic
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUserRole(payload.role);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    fetchArticles();
+    Promise.resolve().then(() => {
+      void fetchArticles();
+    });
   }, []);
 
   const canManage = ['super_admin', 'admin', 'gestor'].includes(userRole);

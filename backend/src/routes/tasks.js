@@ -23,7 +23,10 @@ router.get('/', async (req, res) => {
 
 router.post('/', requireRole(['super_admin', 'admin', 'gestor', 'coordenador']), async (req, res) => {
   try {
-    const newTask = await dbService.create('tasks', req.body, req.user.id, req.user.name);
+    const newTask = await dbService.create('tasks', {
+      ...req.body,
+      companyId: req.user.companyId
+    }, req.user.id, req.user.name);
     res.status(201).json(newTask);
   } catch (err) {
     res.status(500).json({ message: 'Erro no servidor' });
@@ -32,6 +35,11 @@ router.post('/', requireRole(['super_admin', 'admin', 'gestor', 'coordenador']),
 
 router.put('/:id', async (req, res) => {
   try {
+    const existing = await dbService.getById('tasks', req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Tarefa não encontrada' });
+    if (req.user.role !== 'super_admin' && existing.companyId !== req.user.companyId) {
+      return res.status(403).json({ message: 'Você não tem permissão para editar esta tarefa.' });
+    }
     const updated = await dbService.update('tasks', req.params.id, req.body, req.user.id, req.user.name);
     if (!updated) return res.status(404).json({ message: 'Tarefa não encontrada' });
     res.json(updated);
@@ -45,6 +53,9 @@ router.patch('/:id/status', async (req, res) => {
     const { status, list } = req.body;
     const task = await dbService.getById('tasks', req.params.id);
     if (!task) return res.status(404).json({ message: 'Tarefa não encontrada' });
+    if (req.user.role !== 'super_admin' && task.companyId !== req.user.companyId) {
+      return res.status(403).json({ message: 'Você não tem permissão para mover esta tarefa.' });
+    }
 
     task.status = status;
     task.list = list;
@@ -58,6 +69,11 @@ router.patch('/:id/status', async (req, res) => {
 
 router.delete('/:id', requireRole(['super_admin', 'admin', 'gestor']), async (req, res) => {
   try {
+    const existing = await dbService.getById('tasks', req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Tarefa não encontrada' });
+    if (req.user.role !== 'super_admin' && existing.companyId !== req.user.companyId) {
+      return res.status(403).json({ message: 'Você não tem permissão para excluir esta tarefa.' });
+    }
     const success = await dbService.delete('tasks', req.params.id, req.user.id, req.user.name);
     if (!success) return res.status(404).json({ message: 'Tarefa não encontrada' });
     res.json({ message: 'Tarefa excluída com sucesso' });
