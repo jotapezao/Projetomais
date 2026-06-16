@@ -88,15 +88,32 @@ router.post('/', async (req, res) => {
     // Automation Trigger: ticket_created
     try {
       const automations = await dbService.getCollection('automations');
-      const createAuto = automations.find(a => a.trigger === 'ticket_created' && a.active);
-      if (createAuto) {
-        await dbService.create('simulated_emails', {
-          to: req.user.email || 'cliente@alphacorp.com',
-          subject: `Confirmação de Chamado Aberto: #${newTicket.id}`,
-          body: `Olá! Seu chamado "${newTicket.subject}" foi registrado no sistema sob o ID #${newTicket.id} com prioridade ${newTicket.priority}.`,
-          sentAt: new Date().toISOString(),
-          status: 'sent'
-        });
+      const createAutos = automations.filter(a => a.trigger === 'ticket_created' && a.active);
+      for (const auto of createAutos) {
+        let toEmail = 'gestor@modaverao.com.br';
+        if (auto.action === 'send_email_client') {
+          toEmail = user.email || 'membro@modaverao.com.br';
+        } else if (auto.action === 'send_email_manager') {
+          toEmail = 'gerente@modaverao.com.br';
+        }
+
+        if (auto.action === 'create_log') {
+          await dbService.create('simulated_emails', {
+            to: 'sistema@modaverao.com.br',
+            subject: `[LOG AUTOMATIZAÇÃO] Regra "${auto.name}" disparada`,
+            body: `Gatilho: ticket_created. Chamado #${newTicket.id} criado por ${user.name}.`,
+            sentAt: new Date().toISOString(),
+            status: 'success'
+          });
+        } else {
+          await dbService.create('simulated_emails', {
+            to: toEmail,
+            subject: `Notificação Automática: Chamado #${newTicket.id} Aberto`,
+            body: `Automação "${auto.name}": O chamado "${newTicket.subject}" foi registrado no sistema sob o ID #${newTicket.id} com prioridade ${newTicket.priority}.`,
+            sentAt: new Date().toISOString(),
+            status: 'sent'
+          });
+        }
       }
     } catch (autoErr) {
       console.error("Erro ao rodar automação de criação de chamado:", autoErr);

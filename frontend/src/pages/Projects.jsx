@@ -41,6 +41,15 @@ export default function Projects() {
   const [taskChecklist, setTaskChecklist] = useState([]);
   const [newCheckItem, setNewCheckItem] = useState('');
 
+  // Edit Task State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editPriority, setEditPriority] = useState('media');
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editDeadline, setEditDeadline] = useState('');
+  const [editAssigneeId, setEditAssigneeId] = useState('');
+
   const fetchAllData = async () => {
     try {
       const [projRes, taskRes, userRes] = await Promise.all([
@@ -136,6 +145,39 @@ export default function Projects() {
       }
     } catch (error) {
       console.error('Erro ao atualizar detalhes da tarefa', error);
+    }
+  };
+
+  const startEditing = () => {
+    if (!selectedTask) return;
+    setEditTitle(selectedTask.title || '');
+    setEditDesc(selectedTask.description || '');
+    setEditPriority(selectedTask.priority || 'media');
+    setEditStartDate(selectedTask.startDate || '');
+    setEditDeadline(selectedTask.deadline || '');
+    setEditAssigneeId(selectedTask.assigneeId || '');
+    setIsEditing(true);
+  };
+
+  const handleSaveTaskEdit = async (e) => {
+    e.preventDefault();
+    if (!selectedTask) return;
+    
+    const updated = {
+      ...selectedTask,
+      title: editTitle,
+      description: editDesc,
+      priority: editPriority,
+      startDate: editStartDate,
+      deadline: editDeadline,
+      assigneeId: editAssigneeId || null
+    };
+
+    try {
+      await handleUpdateTaskDetails(updated);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Erro ao salvar edições da tarefa:", error);
     }
   };
 
@@ -282,6 +324,24 @@ export default function Projects() {
                       </div>
                       <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '500' }}>{task.title}</h4>
                       
+                      {/* Subtask Progress Bar */}
+                      {task.checklist && task.checklist.length > 0 && (() => {
+                        const total = task.checklist.length;
+                        const done = task.checklist.filter(c => c.completed).length;
+                        const progress = Math.round((done / total) * 100);
+                        return (
+                          <div style={{ marginTop: '0.75rem', marginBottom: '0.75rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'hsl(var(--text-muted))', marginBottom: '0.25rem' }}>
+                              <span>Subtarefas ({done}/{total})</span>
+                              <span>{progress}%</span>
+                            </div>
+                            <div style={{ height: '4px', background: 'hsla(var(--border), 0.5)', borderRadius: '2px', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${progress}%`, background: 'hsl(var(--success-light))', transition: 'width 0.3s ease' }} />
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
                         <div style={{ fontSize: '0.75rem', color: 'hsl(var(--text-secondary))', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <CheckSquare size={14} /> {task.checklist?.filter(c => c.completed).length || 0}/{task.checklist?.length || 0}
@@ -566,69 +626,127 @@ export default function Projects() {
       {selectedTask && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div className="glass-card" style={{ width: '100%', maxWidth: '700px', padding: '2rem', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-            <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }} onClick={() => setSelectedTask(null)}>
+            <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }} onClick={() => { setSelectedTask(null); setIsEditing(false); }}>
               <X size={24} />
             </button>
             
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1rem' }}>
-              <span className="badge badge-info">{selectedTask.list}</span>
-              <span className="badge badge-warning">{selectedTask.priority}</span>
-            </div>
-
-            <h2 style={{ marginBottom: '0.5rem' }}>{selectedTask.title}</h2>
-            <p style={{ color: 'hsl(var(--text-secondary))', marginBottom: '1.5rem' }}>{selectedTask.description || 'Sem descrição.'}</p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem', padding: '1rem', background: 'hsla(var(--border), 0.3)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
-              <div>
-                <div style={{ marginBottom: '0.5rem' }}><strong>Data de Início:</strong> {selectedTask.startDate ? new Date(selectedTask.startDate).toLocaleDateString() : 'Não informada'}</div>
-                <div><strong>Prazo final:</strong> {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString() : 'Sem prazo'}</div>
-              </div>
-              <div>
-                <div style={{ marginBottom: '0.5rem' }}><strong>Responsável:</strong> {teamMembers.find(m => m.id === selectedTask.assigneeId)?.name || 'Não atribuído'}</div>
-                <div><strong>Editar Responsável:</strong>
-                  <select 
-                    style={{ background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', color: '#fff', borderRadius: '4px', marginLeft: '0.5rem', padding: '2px 5px' }}
-                    value={selectedTask.assigneeId || ''} 
-                    onChange={e => handleUpdateTaskDetails({ ...selectedTask, assigneeId: e.target.value })}
-                  >
-                    <option value="">Ninguém</option>
-                    {teamMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
+            {isEditing ? (
+              <form onSubmit={handleSaveTaskEdit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <h2 style={{ marginBottom: '1.5rem' }}>Editar Atividade</h2>
+                
+                <div className="input-group">
+                  <label className="input-label">Título da Tarefa</label>
+                  <input type="text" className="input-field" value={editTitle} onChange={e => setEditTitle(e.target.value)} required />
                 </div>
-              </div>
-            </div>
-
-            {/* Checklist */}
-            <div style={{ marginBottom: '2rem' }}>
-              <h3 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckSquare size={18} /> Checklist / Subtarefas</h3>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
-                {(selectedTask.checklist || []).map(item => (
-                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between', padding: '0.5rem', background: 'hsl(var(--bg-secondary))', borderRadius: 'var(--radius-sm)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={item.completed} 
-                        onChange={() => toggleCheckItemInSelected(item.id)} 
-                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                      />
-                      <span style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? 'hsl(var(--text-muted))' : '#fff' }}>{item.text}</span>
-                    </div>
-                    <button style={{ border: 'none', background: 'transparent', color: 'hsl(var(--danger))', cursor: 'pointer', fontSize: '0.75rem' }} onClick={() => deleteCheckItemInSelected(item.id)}>Excluir</button>
+                
+                <div className="input-group">
+                  <label className="input-label">Descrição</label>
+                  <textarea className="input-field" value={editDesc} onChange={e => setEditDesc(e.target.value)} />
+                </div>
+                
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div className="input-group" style={{ flex: 1 }}>
+                    <label className="input-label">Data de Início</label>
+                    <input type="date" className="input-field" value={editStartDate} onChange={e => setEditStartDate(e.target.value)} />
                   </div>
-                ))}
-              </div>
+                  <div className="input-group" style={{ flex: 1 }}>
+                    <label className="input-label">Prazo de Entrega</label>
+                    <input type="date" className="input-field" value={editDeadline} onChange={e => setEditDeadline(e.target.value)} />
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div className="input-group" style={{ flex: 1 }}>
+                    <label className="input-label">Prioridade</label>
+                    <select className="input-field" value={editPriority} onChange={e => setEditPriority(e.target.value)}>
+                      <option value="baixa">Baixa</option>
+                      <option value="media">Média</option>
+                      <option value="alta">Alta</option>
+                      <option value="critica">Crítica</option>
+                    </select>
+                  </div>
+                  <div className="input-group" style={{ flex: 1 }}>
+                    <label className="input-label">Responsável</label>
+                    <select className="input-field" value={editAssigneeId} onChange={e => setEditAssigneeId(e.target.value)}>
+                      <option value="">Ninguém</option>
+                      {teamMembers.map(m => (
+                        <option key={m.id} value={m.id}>{m.name} {m.lastName}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem', borderTop: '1px solid hsl(var(--border))', paddingTop: '1.5rem' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setIsEditing(false)}>Cancelar</button>
+                  <button type="submit" className="btn btn-primary">Salvar Alterações</button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1rem' }}>
+                  <span className="badge badge-info">{selectedTask.list}</span>
+                  <span className={`badge ${selectedTask.priority === 'alta' || selectedTask.priority === 'critica' ? 'badge-danger' : 'badge-info'}`}>{selectedTask.priority}</span>
+                </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input type="text" className="input-field" placeholder="Novo item..." value={newCheckItem} onChange={e => setNewCheckItem(e.target.value)} />
-                <button className="btn btn-secondary" onClick={addCheckItemToSelected}>Adicionar</button>
-              </div>
-            </div>
+                <h2 style={{ marginBottom: '0.5rem' }}>{selectedTask.title}</h2>
+                <p style={{ color: 'hsl(var(--text-secondary))', marginBottom: '1.5rem' }}>{selectedTask.description || 'Sem descrição.'}</p>
 
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'space-between', borderTop: '1px solid hsl(var(--border))', paddingTop: '1.5rem' }}>
-              <button className="btn btn-danger" onClick={() => handleDeleteTask(selectedTask.id)}><Trash2 size={16} /> Excluir Tarefa</button>
-              <button className="btn btn-secondary" onClick={() => setSelectedTask(null)}>Fechar</button>
-            </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem', padding: '1rem', background: 'hsla(var(--border), 0.3)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
+                  <div>
+                    <div style={{ marginBottom: '0.5rem' }}><strong>Data de Início:</strong> {selectedTask.startDate ? new Date(selectedTask.startDate).toLocaleDateString() : 'Não informada'}</div>
+                    <div><strong>Prazo final:</strong> {selectedTask.deadline ? new Date(selectedTask.deadline).toLocaleDateString() : 'Sem prazo'}</div>
+                  </div>
+                  <div>
+                    <div style={{ marginBottom: '0.5rem' }}><strong>Responsável:</strong> {teamMembers.find(m => m.id === selectedTask.assigneeId)?.name || 'Não atribuído'}</div>
+                    <div><strong>Editar Responsável:</strong>
+                      <select 
+                        style={{ background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', color: '#fff', borderRadius: '4px', marginLeft: '0.5rem', padding: '2px 5px' }}
+                        value={selectedTask.assigneeId || ''} 
+                        onChange={e => handleUpdateTaskDetails({ ...selectedTask, assigneeId: e.target.value })}
+                      >
+                        <option value="">Ninguém</option>
+                        {teamMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Checklist */}
+                <div style={{ marginBottom: '2rem' }}>
+                  <h3 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckSquare size={18} /> Checklist / Subtarefas</h3>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+                    {(selectedTask.checklist || []).map(item => (
+                      <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between', padding: '0.5rem', background: 'hsl(var(--bg-secondary))', borderRadius: 'var(--radius-sm)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={item.completed} 
+                            onChange={() => toggleCheckItemInSelected(item.id)} 
+                            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                          />
+                          <span style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? 'hsl(var(--text-muted))' : '#fff' }}>{item.text}</span>
+                        </div>
+                        <button style={{ border: 'none', background: 'transparent', color: 'hsl(var(--danger))', cursor: 'pointer', fontSize: '0.75rem' }} onClick={() => deleteCheckItemInSelected(item.id)}>Excluir</button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input type="text" className="input-field" placeholder="Novo item..." value={newCheckItem} onChange={e => setNewCheckItem(e.target.value)} />
+                    <button className="btn btn-secondary" onClick={addCheckItemToSelected}>Adicionar</button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'space-between', borderTop: '1px solid hsl(var(--border))', paddingTop: '1.5rem' }}>
+                  <button className="btn btn-danger" onClick={() => handleDeleteTask(selectedTask.id)}><Trash2 size={16} /> Excluir Tarefa</button>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button className="btn btn-secondary" onClick={startEditing}>Editar Atividade</button>
+                    <button className="btn btn-secondary" onClick={() => setSelectedTask(null)}>Fechar</button>
+                  </div>
+                </div>
+              </>
+            )}
 
           </div>
         </div>

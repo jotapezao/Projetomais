@@ -58,7 +58,15 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 // ... (existing mock routes)
-app.get('/api/emails/simulated', (req, res) => res.json([]));
+app.get('/api/emails/simulated', async (req, res) => {
+  try {
+    const emails = await dbService.getCollection('simulated_emails');
+    res.json(emails);
+  } catch (err) {
+    console.error("Erro ao buscar e-mails simulados:", err);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
 
 // Serve a basic health check
 app.get('/api/health', (req, res) => {
@@ -84,41 +92,60 @@ function startBackgroundWorkers() {
       const tickets = await dbService.getCollection('tickets');
       const automations = await dbService.getCollection('automations');
       
-      const slaAlertAuto = automations.find(a => a.trigger === 'ticket_priority_critical' && a.active);
-      if (!slaAlertAuto) return;
+      const slaAlertAutos = automations.filter(a => a.trigger === 'ticket_priority_critical' && a.active);
+      if (slaAlertAutos.length === 0) return;
 
       const now = new Date();
       
       for (const ticket of tickets) {
-        // If ticket is critical and not closed/resolved
-        if (ticket.priority === 'critica' && ticket.status !== 'concluido' && ticket.status !== 'fechado') {
-          const createdTime = new Date(ticket.createdAt || ticket.slaEscalationTime);
+        // If ticket is critical and not closed/resolved/fechado
+        if (ticket.priority === 'critica' && ticket.status !== 'resolvido' && ticket.status !== 'fechado') {
+          const createdTime = new Date(ticket.createdAt || ticket.history?.[0]?.updatedAt || ticket.slaEscalationTime);
           const diffMinutes = Math.floor((now - createdTime) / 60000);
           
-          // Trigger alert if it exceeds threshold and hasn't been alerted yet
-          if (diffMinutes >= (slaAlertAuto.delayMinutes || 30) && !ticket.slaAlertTriggered) {
-            console.log(`[SLA ALERT] Chamado crítico #${ticket.id} violou SLA de tempo!`);
-            
-            // Mark as alerted
-            ticket.slaAlertTriggered = true;
-            ticket.history = ticket.history || [];
-            ticket.history.push({
-              status: ticket.status,
-              updatedAt: now.toISOString(),
-              userId: 'system',
-              comment: 'Alerta de violação de SLA de criticidade disparado automaticamente.'
-            });
-            
-            await dbService.update('tickets', ticket.id, ticket);
-            
-            // Create a simulated email notification
-            await dbService.create('simulated_emails', {
-              to: 'gestor@maistecnologia.com',
-              subject: `⚠️ ALERTA SLA: Chamado Crítico #${ticket.id} Atrasado`,
-              body: `O chamado "${ticket.subject}" classificado como Crítico está sem solução há mais de ${diffMinutes} minutos. Favor verificar urgentemente.`,
-              sentAt: now.toISOString(),
-              status: 'sent'
-            });
+          for (const slaAlertAuto of slaAlertAutos) {
+            // Trigger alert if it exceeds threshold and hasn't been alerted yet
+            if (diffMinutes >= (slaAlertAuto.delayMinutes || 30) && !ticket.slaAlertTriggered) {
+              console.log(`[SLA ALERT] Chamado crítico #${ticket.id} violou SLA de tempo!`);
+              
+              // Mark as alerted
+              ticket.slaAlertTriggered = true;
+              ticket.history = ticket.history || [];
+              ticket.history.push({
+                status: ticket.status,
+                updatedAt: now.toISOString(),
+                userId: 'system',
+                comment: `Alerta de violação de SLA de criticidade disparado pela automação "${slaAlertAuto.name}".`
+              });
+              
+              await dbService.update('tickets', ticket.id, ticket);
+              
+              let toEmail = 'gestor@modaverao.com.br';
+              if (slaAlertAuto.action === 'send_email_client') {
+                const creator = await dbService.getById('users', ticket.createdBy);
+                if (creator) toEmail = creator.email;
+              } else if (slaAlertAuto.action === 'send_email_manager') {
+                toEmail = 'gerente@modaverao.com.br';
+              }
+              
+              if (slaAlertAuto.action === 'create_log') {
+                await dbService.create('simulated_emails', {
+                  to: 'sistema@modaverao.com.br',
+                  subject: `[LOG SLA] Chamado Crítico #${ticket.id} Violou SLA`,
+                  body: `O chamado "${ticket.subject}" violou o SLA de criticidade configurado na regra "${slaAlertAuto.name}".`,
+                  sentAt: now.toISOString(),
+                  status: 'success'
+                });
+              } else {
+                await dbService.create('simulated_emails', {
+                  to: toEmail,
+                  subject: `⚠️ ALERTA SLA: Chamado Crítico #${ticket.id} Atrasado`,
+                  body: `O chamado "${ticket.subject}" classificado como Crítico está sem solução há mais de ${diffMinutes} minutos. Favor verificar urgentemente (Regra: "${slaAlertAuto.name}").`,
+                  sentAt: now.toISOString(),
+                  status: 'sent'
+                });
+              }
+            }
           }
         }
       }

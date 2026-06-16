@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Shield, Mail, Zap, Server, Activity, Plus, Database, CheckCircle } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Shield, Mail, Zap, Server, Activity, Plus, Database, CheckCircle, X } from 'lucide-react';
 import client from '../api/client';
 
 export default function AdminPanel() {
@@ -7,7 +7,15 @@ export default function AdminPanel() {
   const [logs, setLogs] = useState([]);
   const [automations, setAutomations] = useState([]);
   const [backupTests, setBackupTests] = useState([]);
+  const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // New Rule / Automation Form State
+  const [showRuleModal, setShowRuleModal] = useState(false);
+  const [newRuleName, setNewRuleName] = useState('');
+  const [newRuleTrigger, setNewRuleTrigger] = useState('ticket_created');
+  const [newRuleAction, setNewRuleAction] = useState('send_email_client');
+  const [newRuleDelay, setNewRuleDelay] = useState(0);
 
   // Email Config State
   const [smtpHost, setSmtpHost] = useState('');
@@ -28,16 +36,18 @@ export default function AdminPanel() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [logsRes, emailRes, autoRes, backupRes] = await Promise.all([
+      const [logsRes, emailRes, autoRes, backupRes, emailsRes] = await Promise.all([
         client.get('/admin/audit-logs'),
         client.get('/admin/email-settings'),
         client.get('/admin/automations'),
-        client.get('/admin/backup/restore-tests')
+        client.get('/admin/backup/restore-tests'),
+        client.get('/emails/simulated')
       ]);
       
       setLogs(logsRes.data);
       setAutomations(autoRes.data);
       setBackupTests(backupRes.data);
+      setEmails(emailsRes.data || []);
       
       if (emailRes.data && emailRes.data.length > 0) {
         const config = emailRes.data[0];
@@ -58,6 +68,30 @@ export default function AdminPanel() {
       setLoading(false);
     }
   }, []);
+
+  const handleCreateAutomation = async (e) => {
+    e.preventDefault();
+    if (!newRuleName.trim()) return;
+
+    try {
+      const payload = {
+        name: newRuleName,
+        trigger: newRuleTrigger,
+        action: newRuleAction,
+        delayMinutes: Number(newRuleDelay),
+        active: true
+      };
+      const res = await client.post('/admin/automations', payload);
+      setAutomations(prev => [...prev, res.data]);
+      setShowRuleModal(false);
+      setNewRuleName('');
+      setNewRuleTrigger('ticket_created');
+      setNewRuleAction('send_email_client');
+      setNewRuleDelay(0);
+    } catch (error) {
+      console.error('Erro ao criar regra de automação', error);
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -162,6 +196,13 @@ export default function AdminPanel() {
             onClick={() => setActiveTab('email')}
           >
             <Mail size={18} /> Servidor de E-mails
+          </button>
+          <button 
+            className={`btn ${activeTab === 'emails' ? 'btn-primary' : 'btn-secondary'}`} 
+            style={{ justifyContent: 'flex-start', padding: '0.75rem 1rem', border: activeTab === 'emails' ? 'none' : '' }}
+            onClick={() => setActiveTab('emails')}
+          >
+            <Mail size={18} /> Log de E-mails
           </button>
           <button 
             className={`btn ${activeTab === 'automations' ? 'btn-primary' : 'btn-secondary'}`} 
@@ -301,11 +342,54 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {activeTab === 'emails' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '1.25rem' }}>E-mails Simulados Enviados</h2>
+                <button className="btn btn-secondary" onClick={fetchData}>Atualizar</button>
+              </div>
+              <p style={{ color: 'hsl(var(--text-secondary))', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                Estes são os e-mails que foram disparados pelas regras de automação configuradas no sistema.
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {emails.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'hsl(var(--text-muted))' }}>
+                    Nenhum e-mail enviado ainda.
+                  </div>
+                ) : (
+                  emails.map(email => (
+                    <div key={email.id} className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <div>
+                          <strong>Para:</strong> <code style={{ color: 'hsl(var(--accent-primary))' }}>{email.to}</code>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>
+                          {new Date(email.sentAt || email.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <h4 style={{ fontSize: '1rem', color: '#fff', marginBottom: '0.5rem' }}>{email.subject}</h4>
+                      <p style={{ fontSize: '0.9rem', color: 'hsl(var(--text-secondary))', whiteSpace: 'pre-wrap', background: 'hsla(var(--border), 0.3)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', margin: 0 }}>
+                        {email.body}
+                      </p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', fontSize: '0.75rem' }}>
+                        <span style={{ color: email.status === 'sent' || email.status === 'success' ? 'hsl(var(--success-light))' : 'hsl(var(--danger))' }}>
+                          Status: {email.status === 'sent' || email.status === 'success' ? '✔ Enviado' : '✖ Falhou'}
+                        </span>
+                        <span style={{ color: 'hsl(var(--text-muted))' }}>ID: {email.id}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
           {activeTab === 'automations' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h2 style={{ fontSize: '1.25rem' }}>Regras de Automação Ativas</h2>
-                <button className="btn btn-primary"><Plus size={18} /> Nova Regra</button>
+                <button className="btn btn-primary" onClick={() => setShowRuleModal(true)}><Plus size={18} /> Nova Regra</button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -430,6 +514,67 @@ export default function AdminPanel() {
           
         </div>
       </div>
+
+      {/* CREATE AUTOMATION MODAL */}
+      {showRuleModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '500px', padding: '2rem', position: 'relative' }}>
+            <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }} onClick={() => setShowRuleModal(false)}>
+              <X size={20} />
+            </button>
+            <h2 style={{ marginBottom: '1.5rem' }}>Criar Regra de Automação</h2>
+            
+            <form onSubmit={handleCreateAutomation} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="input-group">
+                <label className="input-label">Nome da Regra</label>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  value={newRuleName} 
+                  onChange={e => setNewRuleName(e.target.value)} 
+                  placeholder="Ex: Notificar Cliente Abertura" 
+                  required 
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Gatilho (Trigger)</label>
+                <select className="input-field" value={newRuleTrigger} onChange={e => setNewRuleTrigger(e.target.value)}>
+                  <option value="ticket_created">Abertura de Chamado</option>
+                  <option value="ticket_priority_critical">Chamado Crítico (SLA)</option>
+                  <option value="task_status_changed">Alteração de Status de Tarefa</option>
+                </select>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Ação (Action)</label>
+                <select className="input-field" value={newRuleAction} onChange={e => setNewRuleAction(e.target.value)}>
+                  <option value="send_email_client">Enviar E-mail para Cliente</option>
+                  <option value="send_email_manager">Enviar E-mail para Gestor</option>
+                  <option value="create_log">Criar Log de Eventos</option>
+                </select>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Carência / Atraso (minutos)</label>
+                <input 
+                  type="number" 
+                  className="input-field" 
+                  value={newRuleDelay} 
+                  onChange={e => setNewRuleDelay(e.target.value)} 
+                  min="0"
+                  required 
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowRuleModal(false)}>Cancelar</button>
+                <button type="submit" className="btn btn-primary">Criar Regra</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

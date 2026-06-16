@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Paperclip, Hash, User, Smile } from 'lucide-react';
+import { Send, Paperclip, Hash, User, Smile, Plus, Search, X } from 'lucide-react';
 import client from '../api/client';
+
+const readTokenPayload = () => {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+};
 
 const readTokenUserId = () => {
   const token = localStorage.getItem('token');
@@ -18,6 +28,14 @@ export default function Chat() {
   const [activeRoom, setActiveRoom] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId] = useState(() => readTokenUserId());
+  
+  // Search & Room Creation State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newRoomName, setNewRoomName] = useState('');
+  const [newRoomType, setNewRoomType] = useState('general');
+  const [currentUser] = useState(() => readTokenPayload());
+
   const messagesEndRef = useRef(null);
 
   // Fetch rooms on mount
@@ -81,19 +99,65 @@ export default function Chat() {
     }
   };
 
+  const handleCreateRoom = async (e) => {
+    e.preventDefault();
+    if (!newRoomName.trim()) return;
+
+    try {
+      const res = await client.post('/chat/rooms', {
+        name: newRoomName,
+        type: newRoomType
+      });
+      setRooms(prev => [...prev, res.data]);
+      setActiveRoom(res.data);
+      setShowCreateModal(false);
+      setNewRoomName('');
+      setNewRoomType('general');
+    } catch (error) {
+      console.error('Erro ao criar canal de chat', error);
+    }
+  };
+
+  const isAllowedToCreate = currentUser && ['system_admin', 'team_admin', 'channel_admin', 'super_admin', 'admin', 'gestor'].includes(currentUser.role);
+  const filteredRooms = rooms.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 120px)', gap: '1.5rem' }}>
       
       {/* Channels List */}
       <div className="glass-card" style={{ width: '280px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid hsl(var(--border))' }}>
-          <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Canais & Mensagens</h2>
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid hsl(var(--border))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Canais</h2>
+          {isAllowedToCreate && (
+            <button 
+              className="btn btn-secondary" 
+              style={{ padding: '0.25rem', border: 'none', background: 'transparent', color: 'hsl(var(--text-secondary))' }}
+              onClick={() => setShowCreateModal(true)}
+              title="Criar novo canal"
+            >
+              <Plus size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Filter Input */}
+        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid hsl(var(--border))' }}>
+          <div className="input-group" style={{ margin: 0, flexDirection: 'row', alignItems: 'center', background: 'hsl(var(--bg-secondary))', padding: '0 0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid hsl(var(--border))' }}>
+            <Search size={14} color="hsl(var(--text-muted))" style={{ marginRight: '0.25rem' }} />
+            <input 
+              type="text" 
+              placeholder="Buscar canal ou contato..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ flex: 1, background: 'transparent', border: 'none', padding: '0.4rem', outline: 'none', color: '#fff', fontSize: '0.85rem' }} 
+            />
+          </div>
         </div>
         
         <div style={{ padding: '1rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           
           <p style={{ fontSize: '0.75rem', fontWeight: '600', color: 'hsl(var(--text-muted))', textTransform: 'uppercase', margin: '0.5rem 0' }}>Grupos & Projetos</p>
-          {rooms.filter(r => r.type !== 'private').map(room => (
+          {filteredRooms.filter(r => r.type !== 'private').map(room => (
             <div 
               key={room.id} 
               onClick={() => setActiveRoom(room)}
@@ -109,7 +173,7 @@ export default function Chat() {
           ))}
 
           <p style={{ fontSize: '0.75rem', fontWeight: '600', color: 'hsl(var(--text-muted))', textTransform: 'uppercase', margin: '1.5rem 0 0.5rem 0' }}>Diretas (Usuários)</p>
-          {rooms.filter(r => r.type === 'private').map(room => (
+          {filteredRooms.filter(r => r.type === 'private').map(room => (
             <div 
               key={room.id} 
               onClick={() => setActiveRoom(room)}
@@ -198,6 +262,44 @@ export default function Chat() {
         </div>
 
       </div>
+
+      {/* CREATE CHANNEL MODAL */}
+      {showCreateModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '400px', padding: '2rem', position: 'relative' }}>
+            <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }} onClick={() => setShowCreateModal(false)}>
+              <X size={20} />
+            </button>
+            <h2 style={{ marginBottom: '1.5rem' }}>Criar Novo Canal</h2>
+            <form onSubmit={handleCreateRoom} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="input-group">
+                <label className="input-label">Nome do Canal</label>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  value={newRoomName} 
+                  onChange={e => setNewRoomName(e.target.value)} 
+                  placeholder="ex: dep-compras" 
+                  required 
+                />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Tipo de Canal</label>
+                <select className="input-field" value={newRoomType} onChange={e => setNewRoomType(e.target.value)}>
+                  <option value="general">Geral</option>
+                  <option value="process">Processo</option>
+                  <option value="department">Departamento</option>
+                  <option value="store">Loja / Unidade</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>Cancelar</button>
+                <button type="submit" className="btn btn-primary">Criar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

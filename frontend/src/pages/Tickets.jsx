@@ -12,6 +12,64 @@ const readTokenPayload = () => {
   }
 };
 
+function SLACounter({ ticket }) {
+  const [statusText, setStatusText] = useState('');
+  const [badgeStyle, setBadgeStyle] = useState({});
+  const [badgeClass, setBadgeClass] = useState('badge-info');
+
+  useEffect(() => {
+    if (ticket.status === 'resolvido' || ticket.status === 'fechado') {
+      setStatusText('✅ SLA Concluído');
+      setBadgeClass('badge-success');
+      setBadgeStyle({});
+      return;
+    }
+
+    const updateSLA = () => {
+      const now = new Date();
+      const limit = new Date(ticket.slaEscalationTime);
+      const diffMs = limit - now;
+
+      if (diffMs <= 0) {
+        setStatusText('🚨 SLA Violado');
+        setBadgeClass('badge-danger');
+        setBadgeStyle({
+          animation: 'pulse 1.5s infinite',
+          fontWeight: '600'
+        });
+      } else {
+        const diffMins = Math.floor(diffMs / 60000);
+        const hours = Math.floor(diffMins / 60);
+        const mins = diffMins % 60;
+
+        if (diffMins < 60) {
+          setStatusText(`⚠️ Vence em ${mins} min`);
+          setBadgeClass('badge-danger');
+          setBadgeStyle({
+            animation: 'pulse 1s infinite alternate',
+            fontWeight: 'bold'
+          });
+        } else {
+          const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+          setStatusText(`⏳ SLA: ${timeStr}`);
+          setBadgeClass('badge-info');
+          setBadgeStyle({});
+        }
+      }
+    };
+
+    updateSLA();
+    const interval = setInterval(updateSLA, 10000); // 10s interval
+    return () => clearInterval(interval);
+  }, [ticket]);
+
+  return (
+    <span className={`badge ${badgeClass}`} style={badgeStyle}>
+      {statusText}
+    </span>
+  );
+}
+
 export default function Tickets() {
   const [tickets, setTickets] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -200,6 +258,7 @@ export default function Tickets() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
                 <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{ticket.subject}</h3>
                 <span className={`badge ${ticket.status === 'resolvido' ? 'badge-success' : 'badge-warning'}`}>{ticket.status.replace('_', ' ')}</span>
+                <SLACounter ticket={ticket} />
               </div>
               <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem', margin: '0 0 0.75rem 0' }}>{ticket.description}</p>
               
@@ -399,7 +458,63 @@ export default function Tickets() {
                 <div style={{ padding: '1rem', background: 'hsla(var(--border), 0.3)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
                   <div style={{ marginBottom: '0.5rem' }}><strong>Aberto por:</strong> {selectedTicket.createdByName}</div>
                   <div style={{ marginBottom: '0.5rem' }}><strong>Prazo de Resolução:</strong> {new Date(selectedTicket.slaEscalationTime).toLocaleString()}</div>
-                  <div><strong>ID do Registro:</strong> <code style={{ color: 'hsl(var(--accent-primary))' }}>{selectedTicket.id}</code></div>
+                  <div style={{ marginBottom: '0.5rem' }}><strong>ID do Registro:</strong> <code style={{ color: 'hsl(var(--accent-primary))' }}>{selectedTicket.id}</code></div>
+                  
+                  {(() => {
+                    const created = new Date(selectedTicket.createdAt || selectedTicket.history?.[0]?.updatedAt || new Date(new Date(selectedTicket.slaEscalationTime).getTime() - 4 * 60 * 60 * 1000));
+                    const limit = new Date(selectedTicket.slaEscalationTime);
+                    const now = new Date();
+                    const total = limit - created;
+                    const elapsed = now - created;
+                    
+                    let progress = 0;
+                    if (total > 0) {
+                      progress = Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
+                    }
+                    
+                    const isResolved = selectedTicket.status === 'resolvido' || selectedTicket.status === 'fechado';
+                    
+                    // Color selection
+                    let progressColor = 'hsl(var(--success-light))';
+                    if (progress > 85) progressColor = 'hsl(var(--danger))';
+                    else if (progress > 50) progressColor = 'hsl(var(--warning))';
+                    
+                    if (isResolved) {
+                      const resolutionEvent = selectedTicket.history?.find(h => h.status === 'resolvido' || h.status === 'fechado');
+                      const resolvedTime = resolutionEvent ? new Date(resolutionEvent.updatedAt) : now;
+                      const violated = resolvedTime > limit;
+                      
+                      return (
+                        <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'hsla(var(--border), 0.15)', borderRadius: 'var(--radius-sm)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.25rem' }}>
+                            <strong>Status do SLA:</strong>
+                            <span style={{ color: violated ? 'hsl(var(--danger))' : 'hsl(var(--success-light))', fontWeight: 'bold' }}>
+                              {violated ? '🚨 SLA Violado' : '✅ SLA Cumprido'}
+                            </span>
+                          </div>
+                          <div style={{ height: '6px', background: 'hsla(var(--border), 0.5)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: '100%', background: violated ? 'hsl(var(--danger))' : 'hsl(var(--success-light))' }} />
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'hsla(var(--border), 0.15)', borderRadius: 'var(--radius-sm)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.25rem' }}>
+                          <strong>Progresso do SLA:</strong>
+                          <span style={{ color: progressColor, fontWeight: 'bold' }}>{progress}% consumido</span>
+                        </div>
+                        <div style={{ height: '6px', background: 'hsla(var(--border), 0.5)', borderRadius: '3px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+                          <div style={{ height: '100%', width: `${progress}%`, background: progressColor, transition: 'width 0.5s ease' }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'hsl(var(--text-muted))' }}>
+                          <span>Aberto: {created.toLocaleTimeString()}</span>
+                          <span>Prazo: {limit.toLocaleTimeString()}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

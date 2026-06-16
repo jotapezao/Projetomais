@@ -5,20 +5,50 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 const router = express.Router();
 router.use(verifyToken);
 
-function buildRoomsForUser(user, allUsers) {
-  const rooms = [];
+async function getRoomsForUser(user, allUsers) {
+  let dbRooms = [];
+  try {
+    dbRooms = await dbService.getCollection('chat_rooms');
+  } catch (err) {
+    console.error("Erro ao buscar salas no banco:", err);
+  }
 
-  rooms.push({ id: 'channel-geral', name: 'geral', type: 'general' });
-  rooms.push({ id: 'channel-avisos', name: 'avisos', type: 'general' });
-  rooms.push({ id: 'channel-proc-defeitos', name: 'proc-defeitos', type: 'process' });
-  rooms.push({ id: 'channel-proc-divergencias', name: 'proc-divergencias', type: 'process' });
-  rooms.push({ id: 'channel-proc-verbas', name: 'proc-verbas', type: 'process' });
-  rooms.push({ id: 'channel-dep-ti', name: 'dep-ti', type: 'department' });
-  rooms.push({ id: 'channel-dep-rh', name: 'dep-rh', type: 'department' });
-  rooms.push({ id: 'channel-dep-compras', name: 'dep-compras', type: 'department' });
-  rooms.push({ id: 'channel-loja-01', name: 'loja-01', type: 'store' });
-  rooms.push({ id: 'channel-loja-02', name: 'loja-02', type: 'store' });
+  // If empty, seed default rooms
+  if (dbRooms.length === 0) {
+    const defaultChannels = [
+      { name: 'geral', type: 'general' },
+      { name: 'avisos', type: 'general' },
+      { name: 'proc-defeitos', type: 'process' },
+      { name: 'proc-divergencias', type: 'process' },
+      { name: 'proc-verbas', type: 'process' },
+      { name: 'dep-ti', type: 'department' },
+      { name: 'dep-rh', type: 'department' },
+      { name: 'dep-compras', type: 'department' },
+      { name: 'loja-01', type: 'store' },
+      { name: 'loja-02', type: 'store' }
+    ];
 
+    dbRooms = [];
+    for (const channel of defaultChannels) {
+      try {
+        const created = await dbService.create('chat_rooms', {
+          name: channel.name,
+          type: channel.type,
+          companyId: user.companyId || 'comp-1'
+        }, 'system', 'System');
+        dbRooms.push(created);
+      } catch (err) {
+        console.error("Erro ao criar canal default:", err);
+      }
+    }
+  }
+
+  // Filter channels by companyId
+  const companyRooms = dbRooms.filter(r => r.companyId === user.companyId);
+
+  const rooms = [...companyRooms];
+
+  // Add private DM rooms
   const otherUsers = allUsers.filter(u => u.id !== user.id && u.status === 'active' && u.companyId === user.companyId);
   otherUsers.forEach(u => {
     rooms.push({
@@ -31,28 +61,72 @@ function buildRoomsForUser(user, allUsers) {
   return rooms;
 }
 
-function canAccessRoom(user, roomId, allUsers) {
-  const rooms = buildRoomsForUser(user, allUsers);
-  return rooms.some(room => room.id === roomId);
+async function canAccessRoom(user, roomId, allUsers) {
+  if (roomId.startsWith('private-')) {
+    const parts = roomId.replace('private-', '').split('-');
+    return parts.includes(user.id);
+  }
+  try {
+    const room = await dbService.getById('chat_rooms', roomId);
+    return room && room.companyId === user.companyId;
+  } catch (err) {
+    return false;
+  }
 }
 
-// Buscar salas e canais corporativos padronizados das Lojas Moda Verão
+// Buscar salas
 router.get('/rooms', async (req, res) => {
   try {
     const user = await dbService.getById('users', req.user.id);
     const allUsers = await dbService.getCollection('users');
-    res.json(buildRoomsForUser(user, allUsers));
+    const rooms = await getRoomsForUser(user, allUsers);
+    res.json(rooms);
   } catch (err) {
+    console.error("Erro ao carregar salas:", err);
     res.status(500).json({ message: 'Erro ao carregar salas de chat' });
   }
 });
+
+// Criar nova sala
+const createRoomHandler = async (req, res) => {
+  try {
+    const { name, type } = req.body;
+    if (!name || !type) {
+      return res.status(400).json({ message: 'Nome e tipo do canal são obrigatórios.' });
+    }
+
+    const user = await dbService.getById('users', req.user.id);
+    
+    // Check role: allow system_admin, team_admin, channel_admin, super_admin, admin, gestor
+    const allowedRoles = ['system_admin', 'team_admin', 'channel_admin', 'super_admin', 'admin', 'gestor'];
+    if (!allowedRoles.includes(user.role)) {
+      return res.status(403).json({ message: 'Apenas administradores e gestores podem criar canais.' });
+    }
+
+    const newRoomData = {
+      name: name.toLowerCase().trim().replace(/\s+/g, '-'),
+      type,
+      companyId: user.companyId || 'comp-1'
+    };
+
+    const newRoom = await dbService.create('chat_rooms', newRoomData, req.user.id, req.user.name);
+    res.status(201).json(newRoom);
+  } catch (err) {
+    console.error("Erro ao criar canal:", err);
+    res.status(500).json({ message: 'Erro ao criar canal de chat' });
+  }
+};
+
+router.post('/rooms', createRoomHandler);
+router.post('/', createRoomHandler);
 
 // Buscar mensagens de uma sala
 router.get('/messages/:roomId', async (req, res) => {
   try {
     const user = await dbService.getById('users', req.user.id);
     const allUsers = await dbService.getCollection('users');
-    if (!canAccessRoom(user, req.params.roomId, allUsers)) {
+    const hasAccess = await canAccessRoom(user, req.params.roomId, allUsers);
+    if (!hasAccess) {
       return res.status(403).json({ message: 'Você não tem permissão para acessar esta sala.' });
     }
     const allMessages = await dbService.getCollection('chat_messages');
@@ -61,6 +135,7 @@ router.get('/messages/:roomId', async (req, res) => {
       .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); // Oldest first
     res.json(roomMessages);
   } catch (err) {
+    console.error("Erro ao buscar mensagens:", err);
     res.status(500).json({ message: 'Erro ao carregar mensagens' });
   }
 });
@@ -73,7 +148,8 @@ router.post('/messages', async (req, res) => {
 
     const user = await dbService.getById('users', req.user.id);
     const allUsers = await dbService.getCollection('users');
-    if (!canAccessRoom(user, roomId, allUsers)) {
+    const hasAccess = await canAccessRoom(user, roomId, allUsers);
+    if (!hasAccess) {
       return res.status(403).json({ message: 'Você não tem permissão para enviar mensagens nesta sala.' });
     }
 
@@ -88,6 +164,7 @@ router.post('/messages', async (req, res) => {
     const newMsg = await dbService.create('chat_messages', messageData, req.user.id, req.user.name);
     res.status(201).json(newMsg);
   } catch (err) {
+    console.error("Erro ao enviar mensagem:", err);
     res.status(500).json({ message: 'Erro ao enviar mensagem' });
   }
 });
