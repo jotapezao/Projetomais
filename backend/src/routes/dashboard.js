@@ -7,12 +7,13 @@ router.use(verifyToken);
 
 router.get('/summary', async (req, res) => {
   try {
-    const [user, projects, tasks, tickets, logs] = await Promise.all([
+    const [user, projects, tasks, tickets, logs, allUsers] = await Promise.all([
       dbService.getById('users', req.user.id),
       dbService.getCollection('projects'),
       dbService.getCollection('tasks'),
       dbService.getCollection('tickets'),
-      dbService.getCollection('auditLogs')
+      dbService.getCollection('auditLogs'),
+      dbService.getCollection('users')
     ]);
 
     const isSuperAdmin = user?.role === 'super_admin';
@@ -21,6 +22,7 @@ router.get('/summary', async (req, res) => {
     const scopedProjects = scope(projects);
     const scopedTasks = scope(tasks);
     const scopedTickets = scope(tickets);
+    const scopedUsers = scope(allUsers);
     const scopedLogs = isSuperAdmin ? logs : logs.filter(log => !log.companyId || log.companyId === user.companyId);
 
     const now = new Date();
@@ -65,9 +67,16 @@ router.get('/summary', async (req, res) => {
         tasksByList: Object.entries(byTaskList).map(([label, value]) => ({ label, value })),
         ticketsByStatus: Object.entries(byTicketStatus).map(([label, value]) => ({ label, value }))
       },
-      recentActivity: scopedLogs.slice(0, 8)
+      recentActivity: scopedLogs.slice(0, 8),
+      raw: {
+        projects: scopedProjects,
+        tasks: scopedTasks,
+        tickets: scopedTickets,
+        users: scopedUsers
+      }
     });
   } catch (err) {
+    console.error("Erro ao montar resumo executivo:", err);
     res.status(500).json({ message: 'Erro ao montar resumo executivo' });
   }
 });

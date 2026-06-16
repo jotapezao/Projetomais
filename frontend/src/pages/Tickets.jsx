@@ -73,6 +73,7 @@ function SLACounter({ ticket }) {
 export default function Tickets() {
   const [tickets, setTickets] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,17 +94,19 @@ export default function Tickets() {
 
   const fetchTicketsAndCategories = useCallback(async () => {
     try {
-      const [ticketRes, catRes] = await Promise.all([
+      const [ticketRes, catRes, userRes] = await Promise.all([
         client.get('/tickets'),
-        client.get('/tickets/categories')
+        client.get('/tickets/categories'),
+        client.get('/projects/users')
       ]);
       setTickets(ticketRes.data);
       setCategories(catRes.data);
+      setTeamMembers(userRes.data || []);
       if (catRes.data.length > 0 && !category) {
         setCategory(catRes.data[0].name);
       }
     } catch (error) {
-      console.error('Erro ao carregar chamados/categorias', error);
+      console.error('Erro ao carregar chamados/categorias/usuários', error);
     } finally {
       setLoading(false);
     }
@@ -460,6 +463,43 @@ export default function Tickets() {
                   <div style={{ marginBottom: '0.5rem' }}><strong>Prazo de Resolução:</strong> {new Date(selectedTicket.slaEscalationTime).toLocaleString()}</div>
                   <div style={{ marginBottom: '0.5rem' }}><strong>ID do Registro:</strong> <code style={{ color: 'hsl(var(--accent-primary))' }}>{selectedTicket.id}</code></div>
                   
+                  {/* Operator Assignment */}
+                  <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid hsla(var(--border), 0.5)', marginBottom: '0.5rem' }}>
+                    <div style={{ marginBottom: '0.5rem' }}><strong>Técnico / Operador:</strong> {selectedTicket.operatorName || 'Não atribuído'}</div>
+                    {isAdmin && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        <strong>Atribuir:</strong>
+                        <select 
+                          style={{ flex: 1, background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', color: '#fff', borderRadius: '4px', padding: '4px', fontSize: '0.8rem' }}
+                          value={selectedTicket.operatorId || ''} 
+                          onChange={async (e) => {
+                            const opId = e.target.value;
+                            const op = teamMembers.find(m => m.id === opId);
+                            const operatorName = op ? `${op.name} ${op.lastName}` : '';
+                            const updated = {
+                              ...selectedTicket,
+                              operatorId: opId || null,
+                              operatorName: operatorName || null
+                            };
+                            
+                            try {
+                              const res = await client.put(`/tickets/${selectedTicket.id}`, updated);
+                              setSelectedTicket(res.data);
+                              setTickets(prev => prev.map(t => t.id === selectedTicket.id ? res.data : t));
+                            } catch (err) {
+                              console.error("Erro ao atribuir técnico:", err);
+                            }
+                          }}
+                        >
+                          <option value="">Atribuir a...</option>
+                          {teamMembers.map(m => (
+                            <option key={m.id} value={m.id}>{m.name} {m.lastName}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
                   {(() => {
                     const created = new Date(selectedTicket.createdAt || selectedTicket.history?.[0]?.updatedAt || new Date(new Date(selectedTicket.slaEscalationTime).getTime() - 4 * 60 * 60 * 1000));
                     const limit = new Date(selectedTicket.slaEscalationTime);
