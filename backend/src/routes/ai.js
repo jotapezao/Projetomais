@@ -73,41 +73,100 @@ router.post('/chat', async (req, res) => {
         `- Categoria: ${a.category} | Título: "${a.title}"\nProcedimento:\n${a.content}`
       ).join('\n\n');
 
-      const systemInstruction = `Você é um Atendente de Suporte Técnico Humano da Lojas Moda Verão, e seu nome de atendimento é "ProMais AI".
-Sua forma de conversar deve ser natural, amigável, acolhedora e empática. Evite respostas excessivamente formais, engessadas, robóticas ou estruturadas em excesso, a menos que o usuário peça uma lista de passos. Converse como se estivesse em um chat de suporte corporativo em tempo real, prestando assistência direta.
+      const systemInstruction = `Você é o "ProMais AI", um analista de suporte técnico experiente da Lojas Moda Verão. Você conversa como um humano real — de forma natural, descontraída e objetiva, como um colega de trabalho experiente que resolve problemas pelo WhatsApp ou Teams.
 
-Sua missão é ajudar os funcionários a:
-1. Consultar o status dos chamados de suporte abertos.
-2. Responder a dúvidas de procedimentos de TI e processos internos com base nos manuais de ajuda fornecidos abaixo.
-3. Propor a abertura de chamados automaticamente caso o usuário esteja relatando um problema que não pôde ser resolvido ou se ele solicitar explicitamente a abertura de um chamado.
+════════════════════════════════════
+REGRAS CRÍTICAS DE COMPORTAMENTO:
+════════════════════════════════════
 
-Regras de Conversação e Tom:
-${aiHumanMode ? `- ATENÇÃO: Use pronomes em primeira pessoa do singular ("eu", "vou verificar para você", "posso abrir o chamado") para soar como uma pessoa real ajudando o colaborador. Seja simpático, utilize emojis moderadamente para aquecer o diálogo e demonstre real interesse em solucionar a dificuldade do usuário. Responda como se estivesse no WhatsApp ou Teams.` : `- Mantenha um tom profissional, direto e formal.`}
-${!aiRepeatGreeting ? `- ATENÇÃO: NÃO repita a mensagem de apresentação (como "Olá! Sou o ProMais AI, copiloto...") se o usuário já estiver conversando com você no histórico. Vá direto ao assunto ou continue a investigação.` : ``}
-${aiInvestigativeMode ? `- ATENÇÃO: MODO INVESTIGATIVO ATIVADO. Não dê a solução de uma vez só! Faça perguntas diagnósticas curtas (no máximo ${aiMaxQuestions} perguntas por vez) para entender os sintomas antes de sugerir a solução final. Investigue cabos, conexões, LEDs e mensagens de erro.` : `- Diga as soluções diretamente com base nos manuais.`}
+1. NUNCA se reapresente depois da primeira mensagem. Se já existe histórico de conversa, vá direto ao assunto.
+2. NUNCA repita a pergunta anterior com as mesmas palavras. Varie sempre o vocabulário.
+3. MANTENHA o contexto de toda a conversa. Se o usuário já informou marca, modelo ou sintoma, NÃO pergunte de novo.
+4. DIAGNÓSTICO EM ETAPAS — antes de sugerir qualquer solução, colete as informações necessárias fazendo UMA pergunta de cada vez:
+   - Primeiro: qual é o equipamento/problema?
+   - Segundo: qual marca e modelo?
+   - Terceiro: descreva o sintoma específico (o que acontece, o que aparece na tela, qual luz pisca)?
+   - Só depois: ofereça o procedimento de solução passo a passo.
+5. NUNCA assuma um sintoma específico com base em keywords vagas. Exemplo: se o usuário diz "imprimindo com falhas", NÃO assuma que é "papel enroscado" — pergunte qual tipo de falha (mancha, listras, cor errada, papel amassado).
+6. Se o usuário pedir para ABRIR CHAMADO (qualquer forma de solicitação explícita: "abre chamado", "registra", "quero abrir", "preciso de suporte"), gere IMEDIATAMENTE o action create_ticket com os dados coletados até então.
+7. Se depois de 3 tentativas de solução o problema persistir, sugira proativamente abrir um chamado.
+8. Use linguagem simples, brasileira e coloquial. Evite termos técnicos desnecessários com usuários finais.
+9. Varie as expressões: não use sempre "Entendi", "Certo", "Analisado". Use: "Ah, entendi!", "Boa pergunta!", "Vamos ver...", "Deixa eu te ajudar com isso...", "Que situação!", "Já vi esse problema antes..."
+10. ${aiHumanMode ? 'Tom: humano, simpático, como conversa de WhatsApp. Emojis moderados. Primeira pessoa.' : 'Tom: profissional e direto.'}
 
-Instruções sobre o banco de dados e ações:
-- Se você determinar que um novo chamado deve ser aberto (por exemplo, o usuário diz "abra um chamado para mim" ou tem um problema técnico sem solução nos manuais), você deve gerar uma ação do tipo "create_ticket" na lista de ações ("actions").
-- O objeto de ação no JSON deve ser: { "type": "create_ticket", "payload": { "subject": "Assunto curto e descritivo", "description": "Descrição detalhada do problema baseada na mensagem do usuário", "category": "TI e Infraestrutura" | "Sistemas e Bugs" | "Recursos Humanos" | "Financeiro", "priority": "baixa" | "media" | "alta" | "critica" } }. Escolha a categoria e prioridade mais adequadas para o caso.
-- Não crie chamados se a dúvida for informativa e o manual resolver o problema.
+════════════════════════════════════
+FLUXO DE ATENDIMENTO OBRIGATÓRIO:
+════════════════════════════════════
 
-Dados do Usuário Atual com quem você está conversando:
-${userProfileText}
+ETAPA 1 — IDENTIFICAÇÃO (se ainda não souber):
+- Qual é o equipamento com problema? (impressora, computador, sistema, VPN, etc.)
 
-Lista de Chamados Recentes deste Usuário/Empresa:
+ETAPA 2 — DETALHAMENTO (se ainda não souber):
+- Qual marca e modelo? (ex: Epson L355, Zebra GC420, HP LaserJet)
+
+ETAPA 3 — SINTOMA ESPECÍFICO (se ainda não souber):
+- O que exatamente está acontecendo? Descreva o que aparece ou o que o equipamento faz.
+  - Para impressora: está ligada? Qual luz aparece? O que acontece quando tenta imprimir? (mancha? não sai papel? papel amassa? cores erradas? linhas?)
+  - Para computador: não liga completamente, ou liga mas não dá imagem? Dá mensagem de erro?
+  - Para VPN: qual mensagem de erro aparece? Fica em qual porcentagem?
+
+ETAPA 4 — SOLUÇÃO GUIADA:
+- Forneça procedimento passo a passo baseado nos manuais.
+- Pergunte se resolveu.
+
+ETAPA 5 — ESCALADA:
+- Se não resolveu, ofereça abrir chamado.
+
+════════════════════════════════════
+DIAGNÓSTICO DE IMPRESSORAS (USE A BASE DE CONHECIMENTO ABAIXO):
+════════════════════════════════════
+
+Problemas comuns e perguntas-chave:
+- "não imprime nada" → Verifique: está ligada? Conexão USB/rede? Fila de impressão travada?
+- "imprimindo com falhas / manchas / linhas" → Pergunte: são linhas horizontais ou verticais? A cor está toda errada ou só uma cor? Isso acontece em todas as impressões?
+- "papel enroscado / atolamento" → Siga o procedimento de remoção segura de papel
+- "led piscando vermelho" → Depende da marca: Zebra = calibração; Epson/HP = erro de papel ou tinta
+- "não liga" → Verifique cabo, tomada, estabilizador
+
+Marcas frequentes:
+- Zebra GC420/ZD220: etiquetas, led vermelho = sem papel ou tampa aberta, calibração via botão Feed
+- Epson (L355, L3150, L3250): jato de tinta, limpeza de cabeçote, recarga de tinta
+- HP LaserJet: toner, erro de papel, aquecimento
+
+════════════════════════════════════
+DADOS DO SISTEMA:
+════════════════════════════════════
+
+Usuário atual: ${userProfileText}
+
+Chamados recentes:
 ${ticketsText || "Nenhum chamado encontrado."}
 
-Manuais de Suporte Disponíveis (Base de Conhecimento):
+Manuais de Suporte (Base de Conhecimento):
 ${articlesText || "Nenhum manual de ajuda encontrado."}
 
-Você DEVE responder rigorosamente em formato JSON com o seguinte formato de dados (Response Schema):
+════════════════════════════════════
+FORMATO DE RESPOSTA OBRIGATÓRIO:
+════════════════════════════════════
+
+Responda SEMPRE em JSON puro (sem blocos de código markdown). Formato:
 {
-  "reply": "Sua resposta. Formate o texto em markdown, use emojis de forma elegante e mantenha o tom de conversa natural.",
-  "actions": [
-    // Array de ações. Opcional. Se for abrir um chamado, inclua o objeto create_ticket mencionado acima.
-  ]
+  "reply": "Sua mensagem em markdown natural. Use emojis com moderação.",
+  "actions": []
 }
-Sua resposta final deve ser um JSON válido contendo os campos "reply" e "actions". Não inclua blocos de código markdown (\`\`\`json ...) na resposta, apenas o texto JSON puro.`;
+
+Para abrir chamado, inclua em "actions":
+{
+  "type": "create_ticket",
+  "payload": {
+    "subject": "Assunto breve e descritivo",
+    "description": "Descrição detalhada do problema com base na conversa",
+    "category": "TI e Infraestrutura",
+    "priority": "media"
+  }
+}
+
+Não crie chamados para dúvidas informativas resolvidas pela base de conhecimento.`;
 
       const model = localGenAI.getGenerativeModel({
         model: "gemini-2.5-flash",
@@ -164,19 +223,39 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
       else if (lower.includes('senha') || lower.includes('login') || lower.includes('usuario') || lower.includes('usuário')) device = 'senha';
       else if (lower.includes('chamado') || lower.includes('suporte')) device = 'chamado';
 
-      // Detecção de Marca
+      // Detecção de Marca (precedência sobre modelos específicos)
       if (lower.includes('zebra') || lower.includes('gc420') || lower.includes('zd220')) brand = 'zebra';
-      else if (lower.includes('epson') || lower.includes('l3150') || lower.includes('l3250') || lower.includes('jato de tinta')) brand = 'epson';
+      else if (lower.includes('epson') || lower.includes('l355') || lower.includes('l3150') || lower.includes('l3250') || lower.includes('jato de tinta')) brand = 'epson';
       else if (lower.includes('hp') || lower.includes('laserjet')) brand = 'hp';
-      else if (lower.includes('canon')) brand = 'canon';
+      else if (lower.includes('canon') || lower.includes('pixma')) brand = 'canon';
       else if (lower.includes('fortinet') || lower.includes('forticlient')) brand = 'forticlient';
 
-      // Detecção de Sintoma
-      if (lower.includes('não liga') || lower.includes('desligada') || lower.includes('desligado') || lower.includes('apagada') || lower.includes('apagado') || lower.includes('morto') || lower.includes('morreu') || lower.includes('sem energia') || lower.includes('não acende') || lower.includes('ligar')) symptom = 'desligado';
-      else if (lower.includes('papel') || lower.includes('engolindo') || lower.includes('atolado') || lower.includes('enroscado') || lower.includes('preso') || lower.includes('engoliu') || lower.includes('trancou') || lower.includes('puxando')) symptom = 'papel';
-      else if (lower.includes('vermelho') || lower.includes('piscando') || lower.includes('pisca') || lower.includes('luz vermelha') || lower.includes('led vermelho')) symptom = 'led_vermelho';
-      else if (lower.includes('senha') || lower.includes('credenciais') || lower.includes('expirada') || lower.includes('acesso') || lower.includes('erro de login')) symptom = 'credenciais';
-      else if (lower.includes('98%') || lower.includes('tempo limite') || lower.includes('timeout') || lower.includes('trava') || lower.includes('lentidão') || lower.includes('lento') || lower.includes('caindo') || lower.includes('cai')) symptom = 'conexao_lenta';
+      // Detecção de Sintoma — ORDEM IMPORTA: do mais específico para o mais genérico
+      // Papel enroscado / atolamento — só marca quando é EXPLÍCITO
+      if (lower.includes('papel') && (lower.includes('enroscado') || lower.includes('atolado') || lower.includes('preso') || lower.includes('engolindo') || lower.includes('engoliu') || lower.includes('trancou') || lower.includes('puxando'))) {
+        symptom = 'papel';
+      }
+      // Não liga / sem energia
+      else if (lower.includes('não liga') || lower.includes('não acende') || (lower.includes('sem') && lower.includes('energia')) || lower.includes('apagada') || lower.includes('apagado') || lower.includes('desligada') || lower.includes('desligado') || lower.includes('morreu')) {
+        symptom = 'desligado';
+      }
+      // LED vermelho ou piscando
+      else if (lower.includes('vermelho') || lower.includes('luz vermelha') || lower.includes('led vermelho') || (lower.includes('piscando') && !lower.includes('falha'))) {
+        symptom = 'led_vermelho';
+      }
+      // Falha de impressão genérica (manchas, linhas, cores erradas) — NÃO confundir com papel
+      else if ((lower.includes('falha') || lower.includes('falhando') || lower.includes('manchas') || lower.includes('mancha') || lower.includes('listras') || lower.includes('linhas') || lower.includes('riscos') || lower.includes('cor errada') || lower.includes('desbotado') || lower.includes('fraco') || lower.includes('péssimo') || lower.includes('ruim')) && 
+               (lower.includes('imprim') || lower.includes('impressão') || lower.includes('impressora'))) {
+        symptom = 'falha_impressao';
+      }
+      // Credenciais / senha
+      else if (lower.includes('senha') || lower.includes('credenciais') || lower.includes('expirada') || lower.includes('acesso negado') || lower.includes('erro de login')) {
+        symptom = 'credenciais';
+      }
+      // Lentidão / timeout / VPN
+      else if (lower.includes('98%') || lower.includes('tempo limite') || lower.includes('timeout') || lower.includes('lentidão') || lower.includes('lento') || lower.includes('caindo') || lower.includes('cai')) {
+        symptom = 'conexao_lenta';
+      }
     };
 
     // Scan history messages
@@ -212,16 +291,35 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
       return res.json({ reply, actions });
     }
 
+    // B2. Intenção explícita de abrir chamado — PRIORIDADE MÁXIMA antes dos fluxos investigativos
+    const isOpenTicketIntent = (
+      cleanMsg.includes('abre chamado') || cleanMsg.includes('abrir chamado') || cleanMsg.includes('abra chamado') ||
+      cleanMsg.includes('criar chamado') || cleanMsg.includes('cria chamado') || cleanMsg.includes('novo chamado') ||
+      cleanMsg.includes('registre um chamado') || cleanMsg.includes('registra chamado') || cleanMsg.includes('quero abrir') ||
+      cleanMsg.includes('preciso de suporte') || cleanMsg.includes('chama suporte') || cleanMsg.includes('chamar suporte')
+    );
+
+    if (isOpenTicketIntent) {
+      const subject = device
+        ? `Problema em ${device}${brand ? ' ' + brand.charAt(0).toUpperCase() + brand.slice(1) : ''}${symptom ? ' - ' + symptom.replace('_', ' ') : ''}`
+        : 'Incidente Registrado via Copiloto ProMais AI';
+      const description = `Chamado registrado pelo colaborador via chat do Copiloto ProMais AI. Relato: "${message}". Histórico coletado: ${JSON.stringify(history.slice(-6).map(h => h.content || h.text))}`;
+      reply = `Certo! Já entendi o que está acontecendo e estou registrando o chamado agora mesmo. ⚙️ Só um momento...`;
+      actions = [{ type: 'create_ticket', payload: { subject, description, category: 'TI e Infraestrutura', priority: 'media' } }];
+      return res.json({ reply, actions });
+    }
+
     // C. Roteiro Investigativo baseado em slots
     if (aiInvestigativeMode) {
       if (device === 'impressora') {
         if (!brand) {
-          reply = `Entendi, você está com problemas em uma impressora. Qual é a marca e o modelo dela (ex: Zebra, Epson, HP) para eu te passar as orientações corretas? 🖨️`;
+          reply = `Entendi, você está com problemas na impressora. Qual é a marca e o modelo dela? (ex: Zebra GC420, Epson L355, HP LaserJet) 🖨️`;
           return res.json({ reply, actions });
         }
 
         if (!symptom) {
-          reply = `Anotei aqui que é uma impressora **${brand.toUpperCase()}**. E o que está acontecendo com ela? Ela não está ligando, está piscando luz vermelha ou engolindo papel?`;
+          const brandDisplay = brand.charAt(0).toUpperCase() + brand.slice(1);
+          reply = `Ok, impressora **${brandDisplay}**! O que está acontecendo com ela exatamente? Ela não liga, está piscando alguma luz, engolindo papel ou está imprimindo com manchas/falhas?`;
           return res.json({ reply, actions });
         }
 
@@ -272,6 +370,24 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
 
         // Se for Epson
         if (brand === 'epson') {
+          if (symptom === 'falha_impressao') {
+            if (lastAIReplyLower.includes('limpeza do cabeçote') || lastAIReplyLower.includes('listras')) {
+              if (cleanMsg.includes('não') || cleanMsg.includes('continua') || cleanMsg.includes('ainda') || cleanMsg.includes('pior')) {
+                reply = `Entendido. Quando a limpeza não resolve, pode ser que os cabeçotes estejam muito entupidos ou com tinta ressecada. Precisa de uma limpeza mais profunda feita presencialmente. Vou abrir um chamado para a equipe ir até você, ok? ⚙️`;
+                actions = [{ type: 'create_ticket', payload: {
+                  subject: 'Impressora Epson - Falha de Impressão / Cabeçote Entupido',
+                  description: `Chamado aberto via copiloto ProMais AI. Impressora Epson com falha de impressão (manchas, listras ou cores incorretas). O usuário tentou limpeza de cabeçote pelo software mas o problema persiste.`,
+                  category: 'TI e Infraestrutura', priority: 'media'
+                }}];
+              } else {
+                reply = `Que ótimo que ajudou! Se as listras sumiram ou as cores melhoraram, a impressora está em ordem. Se notar que o problema volta, pode ser hora de fazer manutenção preventiva dos cabeçotes. Precisando, é só chamar! 😊`;
+              }
+            } else {
+              reply = `Ah, falha de impressão pode ter várias causas. Me conta melhor: as impressões estão saindo com **listras/linhas** horizontais ou verticais, com **manchas** de tinta, com **cores erradas** ou a impressão está muito **clara/desbotada**? Isso me ajuda a identificar se é problema de cabeçote ou de tinta. 🖨️`;
+            }
+            return res.json({ reply, actions });
+          }
+
           if (symptom === 'papel') {
             if (lastAIReplyLower.includes('conseguiu retirar tudo')) {
               if (cleanMsg.includes('não') || cleanMsg.includes('preso') || cleanMsg.includes('continua') || cleanMsg.includes('rasgou')) {
@@ -300,8 +416,15 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
           }
         }
 
-        // Se for outra marca
-        reply = `Dicas para impressora **${brand.toUpperCase()}** com problema de **${symptom}**:\n1. Desligue o aparelho e verifique os cabos.\n2. Abra as tampas para verificar se há obstruções ou papel preso.\n3. Se persistir, digite **'abrir chamado'** para acionar o suporte de TI. 🛠️`;
+        // Tratamento genérico para falha de impressão (qualquer marca que chegue aqui)
+        if (symptom === 'falha_impressao') {
+          const brandDisplay = brand ? brand.charAt(0).toUpperCase() + brand.slice(1) : 'sua impressora';
+          reply = `Deixa eu entender melhor. Na **${brandDisplay}**, as impressões estão saindo com:\n\n• 🔴 **Listras ou linhas** horizontais/verticais?\n• 🎨 **Cores erradas** ou faltando alguma cor?\n• 💧 **Manchas** de tinta?\n• 📄 Impressa muito **clara ou quase apagada**?\n\nMe conta que acho a causa mais rápido! 😊`;
+          return res.json({ reply, actions });
+        }
+
+        // Genérico para outras marcas com sintoma diferente
+        reply = `Vou te ajudar com isso! Para impressora **${brand ? brand.toUpperCase() : 'desconhecida'}** com **${symptom.replace('_', ' ')}**, tenta verificar:\n1. Desligue o aparelho e confira os cabos de energia e USB.\n2. Abra as tampas e verifique se há papel ou obstruções.\n3. Reinicie o spooler de impressão (Serviços do Windows).\n\nSe persistir, é só me pedir para **abrir um chamado** e a equipe vai até você. 🛠️`;
         return res.json({ reply, actions });
       }
 
