@@ -198,221 +198,205 @@ Não crie chamados para dúvidas informativas resolvidas pela base de conhecimen
   let actions = [];
 
   try {
-    // A. Filtrar inputs muito curtos ou ruídos (ex: "d", "f", "x", "ok")
+    // A. Filtrar inputs muito curtos ou ruídos (ex: "d", "f", "x")
     if (cleanMsg.length <= 2) {
-      reply = `Oi! Estou por aqui. Como posso te apoiar hoje? 😊 (Se precisar de ajuda com algo específico, pode escrever detalhadamente!)`;
+      reply = `Oi! Estou por aqui. 😊 Pode descrever o problema com mais detalhes?`;
       return res.json({ reply, actions });
     }
 
-    // Obter última resposta do assistente para controle de estado
-    const lastAIReply = [...history].reverse().find(h => h.role === 'assistant' || h.role === 'model' || h.sender === 'ai')?.content || '';
-    const lastAIReplyLower = lastAIReply.toLowerCase();
+    // ──────────────────────────────────────────────
+    // EXTRAÇÃO DE SLOTS — APENAS mensagens do USUÁRIO
+    // ──────────────────────────────────────────────
+    const userMessages = history.filter(h => h.role === 'user').map(h => h.content || h.text || '');
+    userMessages.push(message); // inclui mensagem atual
 
-    // Extrator de slots baseado em todo o histórico da conversa + mensagem atual
     let device = '';
-    let brand = '';
+    let brand   = '';
     let symptom = '';
 
-    const scanText = (text) => {
-      const lower = text.toLowerCase();
-      
-      // Detecção de Dispositivo
-      if (lower.includes('impressora') || lower.includes('imprimir') || lower.includes('impressão') || lower.includes('etiqueta') || lower.includes('toner') || lower.includes('cartucho')) device = 'impressora';
-      else if (lower.includes('computador') || lower.includes('pc') || lower.includes('notebook') || lower.includes('máquina') || lower.includes('maquina') || lower.includes('desktop') || lower.includes('tela') || lower.includes('gabinete') || lower.includes('monitor')) device = 'computador';
-      else if (lower.includes('vpn') || lower.includes('forticlient') || lower.includes('conexão') || lower.includes('conectar') || lower.includes('rede')) device = 'vpn';
-      else if (lower.includes('senha') || lower.includes('login') || lower.includes('usuario') || lower.includes('usuário')) device = 'senha';
-      else if (lower.includes('chamado') || lower.includes('suporte')) device = 'chamado';
+    const scanUserText = (text) => {
+      const t = text.toLowerCase();
 
-      // Detecção de Marca (precedência sobre modelos específicos)
-      if (lower.includes('zebra') || lower.includes('gc420') || lower.includes('zd220')) brand = 'zebra';
-      else if (lower.includes('epson') || lower.includes('l355') || lower.includes('l3150') || lower.includes('l3250') || lower.includes('jato de tinta')) brand = 'epson';
-      else if (lower.includes('hp') || lower.includes('laserjet')) brand = 'hp';
-      else if (lower.includes('canon') || lower.includes('pixma')) brand = 'canon';
-      else if (lower.includes('fortinet') || lower.includes('forticlient')) brand = 'forticlient';
+      // Dispositivo
+      if (t.includes('impressora') || t.includes('imprimir') || t.includes('impressão') || t.includes('etiqueta') || t.includes('toner') || t.includes('cartucho')) device = 'impressora';
+      else if (t.includes('computador') || t.includes(' pc ') || t.includes('notebook') || t.includes('maquina') || t.includes('máquina') || t.includes('desktop') || t.includes('monitor') || t.includes('gabinete')) device = 'computador';
+      else if (t.includes('vpn') || t.includes('forticlient') || t.includes('acesso remoto') || t.includes('rede')) device = 'vpn';
+      else if ((t.includes('senha') || t.includes('login')) && !device) device = 'senha';
 
-      // Detecção de Sintoma — ORDEM IMPORTA: do mais específico para o mais genérico
-      // Papel enroscado / atolamento — só marca quando é EXPLÍCITO
-      if (lower.includes('papel') && (lower.includes('enroscado') || lower.includes('atolado') || lower.includes('preso') || lower.includes('engolindo') || lower.includes('engoliu') || lower.includes('trancou') || lower.includes('puxando'))) {
+      // Marca
+      if (t.includes('zebra') || t.includes('gc420') || t.includes('zd220')) brand = 'zebra';
+      else if (t.includes('epson') || t.includes('l355') || t.includes('l3150') || t.includes('l3250') || t.includes('jato de tinta')) brand = 'epson';
+      else if (t.includes(' hp ') || t.includes('laserjet') || t.includes('deskjet')) brand = 'hp';
+      else if (t.includes('canon') || t.includes('pixma')) brand = 'canon';
+
+      // Sintoma — do mais específico para o mais genérico
+      // 1. Papel enroscado — requer contexto explícito
+      if (t.includes('papel') && (t.includes('enroscado') || t.includes('atolado') || t.includes('preso') || t.includes('engolindo') || t.includes('engoliu') || t.includes('trancou'))) {
         symptom = 'papel';
       }
-      // Não liga / sem energia
-      else if (lower.includes('não liga') || lower.includes('não acende') || (lower.includes('sem') && lower.includes('energia')) || lower.includes('apagada') || lower.includes('apagado') || lower.includes('desligada') || lower.includes('desligado') || lower.includes('morreu')) {
+      // 2. Não liga / sem energia
+      else if (t.includes('não liga') || t.includes('nao liga') || t.includes('não acende') || t.includes('sem energia') || t.includes('apagada') || t.includes('apagado') || t.includes('desligada') || t.includes('desligado') || t.includes('morreu') || t.includes('morta')) {
         symptom = 'desligado';
       }
-      // LED vermelho ou piscando
-      else if (lower.includes('vermelho') || lower.includes('luz vermelha') || lower.includes('led vermelho') || (lower.includes('piscando') && !lower.includes('falha'))) {
-        symptom = 'led_vermelho';
+      // 3. LED / luz piscando
+      else if (t.includes('led') || t.includes('luz vermelha') || t.includes('vermelho') || (t.includes('piscando') && !t.includes('falha'))) {
+        if (!symptom) symptom = 'led_vermelho';
       }
-      // Falha de impressão genérica (manchas, linhas, cores erradas) — NÃO confundir com papel
-      else if ((lower.includes('falha') || lower.includes('falhando') || lower.includes('manchas') || lower.includes('mancha') || lower.includes('listras') || lower.includes('linhas') || lower.includes('riscos') || lower.includes('cor errada') || lower.includes('desbotado') || lower.includes('fraco') || lower.includes('péssimo') || lower.includes('ruim')) && 
-               (lower.includes('imprim') || lower.includes('impressão') || lower.includes('impressora'))) {
+      // 4. Falha de impressão — manchas, listras
+      else if ((t.includes('falha') || t.includes('falhando') || t.includes('mancha') || t.includes('listras') || t.includes('riscos') || t.includes('cor errada') || t.includes('desbotado') || t.includes('fraco') || t.includes('ruim')) &&
+               (t.includes('imprim') || t.includes('impress'))) {
         symptom = 'falha_impressao';
       }
-      // Credenciais / senha
-      else if (lower.includes('senha') || lower.includes('credenciais') || lower.includes('expirada') || lower.includes('acesso negado') || lower.includes('erro de login')) {
-        symptom = 'credenciais';
+      // 5. Lento / travando
+      else if (t.includes('travando') || t.includes('travado') || t.includes('trava') || t.includes('lento') || t.includes('lentidão') || t.includes('devagar') || t.includes('pesado') || t.includes('demora') || t.includes('demorando')) {
+        if (!symptom) symptom = 'lento';
       }
-      // Lentidão / timeout / VPN
-      else if (lower.includes('98%') || lower.includes('tempo limite') || lower.includes('timeout') || lower.includes('lentidão') || lower.includes('lento') || lower.includes('caindo') || lower.includes('cai')) {
-        symptom = 'conexao_lenta';
+      // 6. Erro de conexão / VPN
+      else if (t.includes('98%') || t.includes('tempo limite') || t.includes('timeout') || t.includes('caindo') || t.includes('cai')) {
+        if (!symptom) symptom = 'conexao_lenta';
+      }
+      // 7. Credenciais
+      else if (t.includes('senha') || t.includes('credenciais') || t.includes('expirada') || t.includes('acesso negado') || t.includes('erro de login')) {
+        if (!symptom) symptom = 'credenciais';
       }
     };
 
-    // Scan history messages
-    for (const msg of history) {
-      const content = msg.content || msg.text || '';
-      scanText(content);
-    }
-    // Scan current message
-    scanText(message);
+    for (const txt of userMessages) scanUserText(txt);
 
-    // B. Chitchat / Pequenas interações sociais humanas
-    if (cleanMsg === 'oi' || cleanMsg === 'ola' || cleanMsg === 'olá' || cleanMsg === 'bom dia' || cleanMsg === 'boa tarde' || cleanMsg === 'boa noite') {
-      if (!aiRepeatGreeting && history.length > 0) {
-        reply = `Oi de novo, ${req.user.name || 'colaborador'}! Tudo bem? Em que posso te ajudar agora? 😊`;
+    // Última resposta da IA
+    const lastAIReply = [...history].reverse().find(h => h.role === 'assistant' || h.role === 'model' || h.sender === 'ai')?.content || '';
+    const lastAILow   = lastAIReply.toLowerCase();
+
+    // ──────────────────────────────────────────────
+    // B. DETECÇÃO RÁPIDA — tratamentos prioritários
+    // ──────────────────────────────────────────────
+
+    // B1. Problema resolvido
+    const isResolved = (
+      cleanMsg === 'funcionou' || cleanMsg === 'resolveu' || cleanMsg === 'deu certo' || cleanMsg === 'deu bom' ||
+      cleanMsg.includes('já está funcionando') || cleanMsg.includes('ja esta funcionando') ||
+      cleanMsg.includes('já funciona') || cleanMsg.includes('tá funcionando') || cleanMsg.includes('ta funcionando') ||
+      cleanMsg.includes('voltou a funcionar') || cleanMsg.includes('ficou bom') || cleanMsg.includes('resolvido') ||
+      cleanMsg.includes('tá bom') || cleanMsg.includes('ta bom') || cleanMsg.includes('está funcionando') ||
+      cleanMsg.includes('esta funcionando') || cleanMsg.includes('funcionou') || cleanMsg.includes('consegui resolver')
+    );
+    if (isResolved) {
+      const respostas = [
+        `Ótimo! Fico feliz que resolveu! 😊 Se surgir mais algum problema, pode contar comigo. Bom trabalho!`,
+        `Que bom! Problema resolvido é o melhor resultado. 🎉 Qualquer outra coisa, é só chamar!`,
+        `Maravilha! Boa notícia essa. Se precisar de mais alguma coisa, estou por aqui! 👍`,
+        `Perfeito! Fico feliz em ajudar. Se tiver outra dúvida ou problema, pode me chamar. 😊`
+      ];
+      reply = respostas[Math.floor(Math.random() * respostas.length)];
+      return res.json({ reply, actions });
+    }
+
+    // B2. Agradecimento
+    if (cleanMsg.includes('obrigado') || cleanMsg.includes('obrigada') || cleanMsg.includes('valeu') || cleanMsg === 'perfeito' || cleanMsg === 'entendi') {
+      reply = `Imagina! Estou aqui para isso. Se tiver mais alguma dúvida ou problema, pode chamar! 👍`;
+      return res.json({ reply, actions });
+    }
+
+    // B3. Saudações
+    if (/^(oi|olá|ola|bom dia|boa tarde|boa noite|hey|e aí|eai)$/.test(cleanMsg)) {
+      if (history.length > 0) {
+        reply = `Oi! Em que posso te ajudar agora? 😊`;
       } else {
-        reply = `Olá, ${req.user.name || 'colaborador'}! Tudo bem com você? 😊 Eu sou o ProMais AI, seu assistente pessoal de suporte.\n\nComo posso te ajudar hoje? Posso te ajudar a consultar seus chamados, tirar dúvidas sobre nossos manuais de TI ou até abrir um chamado novo se for preciso!`;
+        reply = `Olá, ${req.user.name || 'colaborador'}! 😊 Sou o ProMais AI, seu assistente de suporte. Me conta o que está acontecendo que eu te ajudo!`;
       }
       return res.json({ reply, actions });
     }
-    
-    if (cleanMsg.includes('como voce esta') || cleanMsg.includes('como vai') || cleanMsg.includes('tudo bem') || cleanMsg.includes('tudo certo')) {
-      reply = `Estou ótimo, muito obrigado por perguntar! 😊 Super animado para te ajudar por aqui hoje. E você, como está? O que podemos resolver juntos hoje?`;
-      return res.json({ reply, actions });
-    }
 
-    if (cleanMsg.includes('quem e voce') || cleanMsg.includes('o que e voce') || cleanMsg.includes('quem voce e') || cleanMsg.includes('o que voce e') || cleanMsg.includes('o que é voce')) {
-      reply = `Eu sou o **ProMais AI**, seu atendente e copiloto de suporte técnico oficial aqui na Lojas Moda Verão! 🤖\n\nFui desenvolvido para te ajudar a encontrar soluções nos nossos manuais de TI, ver o andamento de chamados antigos ou registrar novas solicitações no sistema de forma muito rápida.`;
-      return res.json({ reply, actions });
-    }
-
-    if (cleanMsg.includes('obrigado') || cleanMsg.includes('obrigada') || cleanMsg.includes('valeu') || cleanMsg.includes('perfeito') || cleanMsg.includes('entendido') || cleanMsg.includes('entendi')) {
-      reply = `Imagina! Fico feliz em poder ajudar. Se surgir qualquer outra dúvida ou problema, pode me chamar aqui de novo. Tenha um ótimo trabalho! 👍`;
-      return res.json({ reply, actions });
-    }
-
-    // B2. Intenção explícita de abrir chamado — PRIORIDADE MÁXIMA antes dos fluxos investigativos
+    // B4. Intenção EXPLÍCITA de abrir chamado — PRIORIDADE MÁXIMA
     const isOpenTicketIntent = (
       cleanMsg.includes('abre chamado') || cleanMsg.includes('abrir chamado') || cleanMsg.includes('abra chamado') ||
       cleanMsg.includes('criar chamado') || cleanMsg.includes('cria chamado') || cleanMsg.includes('novo chamado') ||
       cleanMsg.includes('registre um chamado') || cleanMsg.includes('registra chamado') || cleanMsg.includes('quero abrir') ||
-      cleanMsg.includes('preciso de suporte') || cleanMsg.includes('chama suporte') || cleanMsg.includes('chamar suporte')
+      cleanMsg.includes('abrir um chamado') || cleanMsg.includes('registrar chamado') ||
+      cleanMsg.includes('preciso abrir') || cleanMsg.includes('pode abrir') || cleanMsg.includes('pode registrar')
     );
 
     if (isOpenTicketIntent) {
-      const subject = device
-        ? `Problema em ${device}${brand ? ' ' + brand.charAt(0).toUpperCase() + brand.slice(1) : ''}${symptom ? ' - ' + symptom.replace('_', ' ') : ''}`
-        : 'Incidente Registrado via Copiloto ProMais AI';
-      const description = `Chamado registrado pelo colaborador via chat do Copiloto ProMais AI. Relato: "${message}". Histórico coletado: ${JSON.stringify(history.slice(-6).map(h => h.content || h.text))}`;
-      reply = `Certo! Já entendi o que está acontecendo e estou registrando o chamado agora mesmo. ⚙️ Só um momento...`;
+      let subject = 'Incidente registrado via Copiloto ProMais AI';
+      if (device && brand) subject = `Problema em ${brand.charAt(0).toUpperCase() + brand.slice(1)} (${device})${symptom ? ' - ' + symptom.replace(/_/g, ' ') : ''}`;
+      else if (device) subject = `Problema em ${device}${symptom ? ' - ' + symptom.replace(/_/g, ' ') : ''}`;
+
+      const userContext = userMessages.slice(-5).join(' | ');
+      const description = `Chamado registrado via Copiloto ProMais AI.\n\nRelato do usuário: "${message}"\n\nContexto da conversa: ${userContext}`;
+
+      reply = `Perfeito! Vou registrar o chamado agora. ⚙️ Um segundo...`;
       actions = [{ type: 'create_ticket', payload: { subject, description, category: 'TI e Infraestrutura', priority: 'media' } }];
       return res.json({ reply, actions });
     }
 
-    // C. Roteiro Investigativo baseado em slots
+    // ──────────────────────────────────────────────
+    // C. FLUXO INVESTIGATIVO POR DISPOSITIVO
+    // ──────────────────────────────────────────────
+
     if (aiInvestigativeMode) {
+
+      // ── IMPRESSORA ──
       if (device === 'impressora') {
         if (!brand) {
-          reply = `Entendi, você está com problemas na impressora. Qual é a marca e o modelo dela? (ex: Zebra GC420, Epson L355, HP LaserJet) 🖨️`;
+          reply = `Entendi, tem um problema na impressora. Qual é a marca e o modelo? (ex: Zebra GC420, Epson L355, HP LaserJet) 🖨️`;
           return res.json({ reply, actions });
         }
 
         if (!symptom) {
           const brandDisplay = brand.charAt(0).toUpperCase() + brand.slice(1);
-          reply = `Ok, impressora **${brandDisplay}**! O que está acontecendo com ela exatamente? Ela não liga, está piscando alguma luz, engolindo papel ou está imprimindo com manchas/falhas?`;
+          reply = `Ok, **${brandDisplay}**! O que está acontecendo com ela? Ela não liga, está com led piscando, engolindo papel ou imprimindo com falhas?`;
           return res.json({ reply, actions });
         }
 
-        // Se for Zebra
+        // Zebra
         if (brand === 'zebra') {
           if (symptom === 'desligado') {
-            if (lastAIReplyLower.includes('botão de liga/desliga')) {
-              if (cleanMsg.includes('não') || cleanMsg.includes('apagada') || cleanMsg.includes('nada')) {
-                reply = `Puxa, nesse caso parece ser um problema físico ou de fonte de energia queimada. Vou precisar abrir um chamado para nossa equipe técnica ir até aí verificar pessoalmente, tudo bem? Posso prosseguir com a abertura? ⚙️`;
+            if (lastAILow.includes('cabo de força') || lastAILow.includes('botão')) {
+              if (cleanMsg.includes('não') || cleanMsg.includes('nada') || cleanMsg.includes('apagada') || cleanMsg.includes('continua')) {
+                reply = `Poxa, então pode ser problema de fonte ou hardware. Preciso abrir um chamado para um técnico ir verificar — posso prosseguir? ⚙️`;
               } else {
-                reply = `Que ótimo que ligou! E agora, ela está com o led verde fixo ou piscando em alguma cor?`;
+                reply = `Boa! Ligou! E o led dela está verde fixo ou piscando alguma cor?`;
               }
             } else {
-              reply = `Entendi. Se a Zebra está completamente apagada, o cabo de força está bem encaixado atrás dela e na tomada? O botão de liga/desliga traseiro está na posição ligada? Dá uma olhada e me avisa se acendeu algo. 🔌`;
+              reply = `Entendi. Primeiro: o cabo de força atrás da Zebra está bem encaixado na tomada? O botão na parte traseira está ligado? Me avisa o que apareceu. 🔌`;
             }
             return res.json({ reply, actions });
           }
 
           if (symptom === 'led_vermelho') {
-            if (lastAIReplyLower.includes('bobina está bem encaixada')) {
-              reply = `Certo. Vamos tentar recalibrar o sensor de papel dela. É bem simples: desliga a impressora no botão traseiro. Segure o botão Feed da frente pressionado e, sem soltá-lo, ligue a impressora novamente. Mantenha pressionado até o led piscar duas vezes e solte. Ela deve soltar uma ou duas etiquetas e calibrar. Deu certo? 🏷️`;
-            } else if (lastAIReplyLower.includes('recalibrar o sensor')) {
-              if (cleanMsg.includes('não') || cleanMsg.includes('falhou') || cleanMsg.includes('erro') || cleanMsg.includes('continua')) {
-                reply = `Entendi. Como a calibração não resolveu, vou abrir um chamado para um técnico ir dar uma olhada e resolver isso para você, ok? Só um minutinho que já vou registrar... ⚙️`;
-                actions = [{
-                  type: 'create_ticket',
-                  payload: {
-                    subject: 'Problema Impressora Zebra - Não imprime / Vermelho piscando',
-                    description: `Chamado aberto via copiloto ProMais AI. Usuário relatou problema com impressora Zebra. Passou pelas etapas de verificação de energia, bobina de papel e calibração Feed, mas o led continua piscando vermelho.`,
-                    category: 'TI e Infraestrutura',
-                    priority: 'media'
-                  }
-                }];
+            if (lastAILow.includes('recalibr') || lastAILow.includes('feed')) {
+              if (cleanMsg.includes('não') || cleanMsg.includes('falhou') || cleanMsg.includes('continua') || cleanMsg.includes('ainda')) {
+                reply = `Tudo bem, a calibração não resolveu. Vou abrir um chamado para um técnico verificar presencialmente. ⚙️`;
+                actions = [{ type: 'create_ticket', payload: { subject: 'Impressora Zebra - Led vermelho piscando / Sem impressão', description: `Impressora Zebra com led vermelho. Usuário verificou papel, tampa e tentou calibração via botão Feed sem sucesso.`, category: 'TI e Infraestrutura', priority: 'media' } }];
               } else {
-                reply = `Maravilha! Fico feliz que a calibração tenha funcionado e esteja tudo funcionando. Se precisar de mais alguma ajuda, é só me chamar. Bom trabalho! 😊`;
+                reply = `Funcionou! Se o led ficou verde, pode mandar uma impressão de teste. Precisando é só chamar! 😊`;
               }
+            } else if (lastAILow.includes('bobina') || lastAILow.includes('tampa')) {
+              reply = `Legal. Agora tenta recalibrar: desligue a Zebra, segure o botão **Feed** na frente, ligue de novo sem soltar até o led piscar 2x, aí solta. Ela deve imprimir uma etiqueta. Funcionou? 🏷️`;
             } else {
-              reply = `Certo, led vermelho piscando na Zebra geralmente indica falta de papel ou tampa destravada. Você pode abrir a impressora, verificar se a bobina está bem encaixada, fechar a tampa com firmeza até fazer um 'clique' e tentar de novo? Me diz se mudou a cor do led. 🖨️`;
+              reply = `Led vermelho piscando na Zebra geralmente é falta de papel ou tampa aberta. Abre a impressora, confere se a bobina de etiqueta está bem encaixada e fecha com firmeza. O led mudou? 🖨️`;
             }
             return res.json({ reply, actions });
           }
 
           if (symptom === 'papel') {
-            reply = `Entendi. Na Zebra, se o papel estiver enroscado, abra a tampa superior pressionando as travas amarelas laterais, remova a bobina puxando com cuidado para não quebrar o sensor e retire o papel preso. Depois reinsira a bobina e feche. Funcionou?`;
+            if (lastAILow.includes('travas amarelas') || lastAILow.includes('bobina')) {
+              if (cleanMsg.includes('não') || cleanMsg.includes('preso') || cleanMsg.includes('continua') || cleanMsg.includes('rasgou')) {
+                reply = `Entendido. O papel ficou preso internamente. Vou abrir um chamado para a equipe retirar sem danificar. ⚙️`;
+                actions = [{ type: 'create_ticket', payload: { subject: 'Impressora Zebra - Papel enroscado internamente', description: `Zebra com papel/etiqueta presa internamente. Usuário abriu tampa e removeu bobina mas papel continua preso.`, category: 'TI e Infraestrutura', priority: 'media' } }];
+              } else {
+                reply = `Ótimo! Reinsira a bobina, feche a tampa e tente imprimir. Funcionou?`;
+              }
+            } else {
+              reply = `Para retirar papel preso na Zebra: pressione as travas amarelas nas laterais para abrir a tampa, retire a bobina com cuidado e puxe o papel devagar. Conseguiu remover? 🖨️`;
+            }
             return res.json({ reply, actions });
           }
         }
 
-        // Se for Epson
+        // Epson
         if (brand === 'epson') {
           if (symptom === 'falha_impressao') {
-            if (lastAIReplyLower.includes('limpeza do cabeçote') || lastAIReplyLower.includes('listras')) {
-              if (cleanMsg.includes('não') || cleanMsg.includes('continua') || cleanMsg.includes('ainda') || cleanMsg.includes('pior')) {
-                reply = `Entendido. Quando a limpeza não resolve, pode ser que os cabeçotes estejam muito entupidos ou com tinta ressecada. Precisa de uma limpeza mais profunda feita presencialmente. Vou abrir um chamado para a equipe ir até você, ok? ⚙️`;
-                actions = [{ type: 'create_ticket', payload: {
-                  subject: 'Impressora Epson - Falha de Impressão / Cabeçote Entupido',
-                  description: `Chamado aberto via copiloto ProMais AI. Impressora Epson com falha de impressão (manchas, listras ou cores incorretas). O usuário tentou limpeza de cabeçote pelo software mas o problema persiste.`,
-                  category: 'TI e Infraestrutura', priority: 'media'
-                }}];
-              } else {
-                reply = `Que ótimo que ajudou! Se as listras sumiram ou as cores melhoraram, a impressora está em ordem. Se notar que o problema volta, pode ser hora de fazer manutenção preventiva dos cabeçotes. Precisando, é só chamar! 😊`;
-              }
-            } else {
-              reply = `Ah, falha de impressão pode ter várias causas. Me conta melhor: as impressões estão saindo com **listras/linhas** horizontais ou verticais, com **manchas** de tinta, com **cores erradas** ou a impressão está muito **clara/desbotada**? Isso me ajuda a identificar se é problema de cabeçote ou de tinta. 🖨️`;
-            }
-            return res.json({ reply, actions });
-          }
-
-          if (symptom === 'papel') {
-            if (lastAIReplyLower.includes('conseguiu retirar tudo')) {
-              if (cleanMsg.includes('não') || cleanMsg.includes('preso') || cleanMsg.includes('continua') || cleanMsg.includes('rasgou')) {
-                reply = `Puxa, nesse caso o papel pode ter ficado preso em roletes internos de difícil acesso. Vou abrir um chamado para a nossa equipe técnica ir remover e fazer a limpeza interna para você, está bem? ⚙️`;
-                actions = [{
-                  type: 'create_ticket',
-                  payload: {
-                    subject: 'Impressora Epson - Papel Enroscado / Atolamento',
-                    description: `Chamado aberto automaticamente via copiloto ProMais AI. Impressora Epson com papel enroscado/atolamento de papel que o usuário não conseguiu remover manualmente.`,
-                    category: 'TI e Infraestrutura',
-                    priority: 'media'
-                  }
-                }];
-              } else {
-                reply = `Ótimo! Agora ligue a impressora de volta e tente fazer uma impressão de teste. Me avisa se funcionou ou se deu erro novamente. 📄`;
-              }
-            } else {
-              reply = `Papel enroscado na Epson é clássico. Vamos resolver passo a passo:\n1. Desligue a impressora da tomada para evitar puxar as engrenagens motorizadas com força.\n2. Abra a tampa de acesso e tente puxar o papel com as duas mãos, de forma lenta, na direção de saída natural. Nunca puxe rápido para não rasgar.\n3. Verifique se sobrou algum pedaço lá dentro.\n\nConseguiu retirar tudo ou o papel continua preso?`;
-            }
-            return res.json({ reply, actions });
-          }
-
-          if (symptom === 'desligado') {
-            reply = `Para a Epson apagada, verifique se o cabo de força está bem conectado atrás dela e na tomada. Se ela estiver ligada em um estabilizador ou filtro de linha, confirme se ele está ligado. Se tudo estiver conectado e não acender nenhuma luz ao pressionar o botão Power, me avise para abrirmos um chamado.`;
-            return res.json({ reply, actions });
           }
         }
 
