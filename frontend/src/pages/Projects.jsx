@@ -12,6 +12,32 @@ const readTokenPayload = () => {
   }
 };
 
+const PRIORITY_THEMES = {
+  baixa:   { label: 'Baixa',    color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.25)' },
+  media:   { label: 'Média',    color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)',  border: 'rgba(245, 158, 11, 0.25)' },
+  alta:    { label: 'Alta',     color: '#f97316', bg: 'rgba(249, 115, 22, 0.12)',  border: 'rgba(249, 115, 22, 0.25)' },
+  critica: { label: 'Crítica',  color: '#ef4444', bg: 'rgba(239, 68, 68, 0.12)',   border: 'rgba(239, 68, 68, 0.25)' },
+};
+
+const getUserColor = (name = '') => {
+  const colors = [
+    '#6366f1', // Indigo
+    '#3b82f6', // Blue
+    '#10b981', // Emerald
+    '#f59e0b', // Amber
+    '#ec4899', // Pink
+    '#8b5cf6', // Violet
+    '#f97316', // Orange
+    '#14b8a6', // Teal
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
 export default function Projects() {
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -247,6 +273,65 @@ export default function Projects() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* ── STYLES ─────────────────────────────────────────────────────── */}
+      <style>{`
+        .kanban-column {
+          display: flex;
+          flex-direction: column;
+          min-width: 320px;
+          width: 320px;
+          border-radius: 18px;
+          background: rgba(15, 25, 50, 0.45);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          overflow: hidden;
+          transition: all 0.2s ease;
+        }
+        .kanban-card {
+          padding: 1.25rem;
+          cursor: grab;
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .kanban-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+          border-color: rgba(99, 102, 241, 0.3);
+          background: rgba(255, 255, 255, 0.05);
+        }
+        .kanban-card:active {
+          cursor: grabbing;
+        }
+        .avatar-badge {
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          font-size: 0.68rem;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          border: 1.5px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .subtask-bar-container {
+          height: 5px;
+          background: rgba(255, 255, 255, 0.06);
+          border-radius: 99px;
+          overflow: hidden;
+          position: relative;
+        }
+        .subtask-bar-fill {
+          height: 100%;
+          border-radius: 99px;
+          transition: width 0.4s ease;
+        }
+      `}</style>
       
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -289,72 +374,100 @@ export default function Projects() {
         
         {view === 'kanban' && activeProject && (
           <div style={{ display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1rem', width: '100%' }}>
-            {activeProject.lists.map(listName => (
-              <div 
-                key={listName}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, listName)}
-                className="glass-card" 
-                style={{ minWidth: '320px', width: '320px', display: 'flex', flexDirection: 'column', background: 'hsl(var(--bg-secondary))' }}
-              >
-                <div style={{ padding: '1rem', borderBottom: '1px solid hsl(var(--border))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ fontSize: '0.95rem', margin: 0 }}>{listName}</h3>
-                  <span style={{ fontSize: '0.75rem', background: 'hsl(var(--bg-card))', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)' }}>
-                    {projectTasks.filter(t => t.list === listName).length}
-                  </span>
-                </div>
-                
-                <div style={{ padding: '1rem', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {projectTasks.filter(t => t.list === listName).map(task => (
-                    <div 
-                      key={task.id}
-                      draggable
-                      onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
-                      onClick={() => setSelectedTask(task)}
-                      className="glass-card"
-                      style={{ padding: '1rem', cursor: 'grab', background: 'hsl(var(--bg-card))' }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <span className={`badge ${task.priority === 'alta' || task.priority === 'critica' ? 'badge-danger' : 'badge-info'}`} style={{ fontSize: '0.65rem' }}>
-                          {task.priority}
-                        </span>
-                        <div style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>
-                          {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'Sem prazo'}
-                        </div>
-                      </div>
-                      <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '500' }}>{task.title}</h4>
+            {activeProject.lists.map(listName => {
+              const columnTasks = projectTasks.filter(t => t.list === listName);
+              return (
+                <div 
+                  key={listName}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, listName)}
+                  className="kanban-column"
+                >
+                  <div style={{ padding: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255, 255, 255, 0.01)' }}>
+                    <h3 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'hsl(var(--accent-primary))' }} />
+                      {listName}
+                    </h3>
+                    <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600, color: 'hsl(var(--text-secondary))' }}>
+                      {columnTasks.length}
+                    </span>
+                  </div>
+                  
+                  <div style={{ padding: '1.25rem', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {columnTasks.map(task => {
+                      const prio = PRIORITY_THEMES[task.priority] || PRIORITY_THEMES.media;
+                      const assignee = teamMembers.find(m => m.id === task.assigneeId);
+                      const initials = assignee ? `${assignee.name?.[0] || ''}${assignee.lastName?.[0] || ''}`.toUpperCase() : 'NA';
+                      const avatarBg = assignee ? getUserColor(assignee.name) : '#4b5563';
                       
-                      {/* Subtask Progress Bar */}
-                      {task.checklist && task.checklist.length > 0 && (() => {
-                        const total = task.checklist.length;
-                        const done = task.checklist.filter(c => c.completed).length;
-                        const progress = Math.round((done / total) * 100);
-                        return (
-                          <div style={{ marginTop: '0.75rem', marginBottom: '0.75rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'hsl(var(--text-muted))', marginBottom: '0.25rem' }}>
-                              <span>Subtarefas ({done}/{total})</span>
-                              <span>{progress}%</span>
-                            </div>
-                            <div style={{ height: '4px', background: 'hsla(var(--border), 0.5)', borderRadius: '2px', overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${progress}%`, background: 'hsl(var(--success-light))', transition: 'width 0.3s ease' }} />
+                      return (
+                        <div 
+                          key={task.id}
+                          draggable
+                          onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
+                          onClick={() => setSelectedTask(task)}
+                          className="kanban-card"
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', alignItems: 'center' }}>
+                            <span style={{
+                              fontSize: '0.68rem',
+                              padding: '2px 8px',
+                              borderRadius: '100px',
+                              fontWeight: 600,
+                              background: prio.bg,
+                              color: prio.color,
+                              border: `1px solid ${prio.border}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}>
+                              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: prio.color, boxShadow: `0 0 5px ${prio.color}` }} />
+                              {prio.label}
+                            </span>
+                            <div style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>
+                              {task.deadline ? new Date(task.deadline).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Sem prazo'}
                             </div>
                           </div>
-                        );
-                      })()}
+                          
+                          <h4 style={{ fontSize: '0.88rem', marginBottom: '0.75rem', fontWeight: '600', color: '#fff', lineHeight: 1.4 }}>{task.title}</h4>
+                          
+                          {/* Subtask Progress Bar */}
+                          {task.checklist && task.checklist.length > 0 && (() => {
+                            const total = task.checklist.length;
+                            const done = task.checklist.filter(c => c.completed).length;
+                            const progress = Math.round((done / total) * 100);
+                            const progressGradient = progress === 100 
+                              ? 'linear-gradient(90deg, #10b981, #059669)'
+                              : 'linear-gradient(90deg, var(--accent-primary), var(--accent-primary-hover))';
+                            return (
+                              <div style={{ marginTop: '0.75rem', marginBottom: '0.75rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'hsl(var(--text-muted))', marginBottom: '0.25rem' }}>
+                                  <span>Subtarefas ({done}/{total})</span>
+                                  <span style={{ fontWeight: 600, color: progress === 100 ? '#10b981' : 'hsl(var(--text-secondary))' }}>{progress}%</span>
+                                </div>
+                                <div className="subtask-bar-container">
+                                  <div className="subtask-bar-fill" style={{ width: `${progress}%`, background: progressGradient, boxShadow: progress === 100 ? '0 0 6px rgba(16,185,129,0.3)' : 'none' }} />
+                                </div>
+                              </div>
+                            );
+                          })()}
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                        <div style={{ fontSize: '0.75rem', color: 'hsl(var(--text-secondary))', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <CheckSquare size={14} /> {task.checklist?.filter(c => c.completed).length || 0}/{task.checklist?.length || 0}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                            <div style={{ fontSize: '0.72rem', color: 'hsl(var(--text-secondary))', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 500 }}>
+                              <CheckSquare size={13} color="hsl(var(--text-muted))" /> 
+                              <span>{task.checklist?.filter(c => c.completed).length || 0}/{task.checklist?.length || 0}</span>
+                            </div>
+                            <div className="avatar-badge" style={{ background: avatarBg }}>
+                              {initials}
+                            </div>
+                          </div>
                         </div>
-                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'hsl(var(--accent-primary))', color: '#fff', fontSize: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {teamMembers.find(m => m.id === task.assigneeId)?.name?.slice(0, 2).toUpperCase() || 'NA'}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

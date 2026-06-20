@@ -1,6 +1,26 @@
-import { useState, useEffect } from 'react';
-import { Search, Plus, BookOpen, Tag, ChevronRight, ArrowLeft, Trash2, Edit } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Search, Plus, BookOpen, Tag, ChevronRight, ArrowLeft, Trash2, Edit, HelpCircle, Shield, Layers, CreditCard, X } from 'lucide-react';
 import client from '../api/client';
+
+const CATEGORY_META = {
+  'TI': { icon: Shield, gradient: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(99, 102, 241, 0.15))', color: '#60a5fa' },
+  'Recursos Humanos': { icon: UsersIcon, gradient: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(244, 63, 94, 0.15))', color: '#f43f5e' },
+  'Financeiro': { icon: CreditCard, gradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15))', color: '#10b981' },
+  'Dúvidas Frequentes': { icon: HelpCircle, gradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.15))', color: '#fbbf24' },
+  'Processos Internos': { icon: Layers, gradient: 'linear-gradient(135deg, rgba(167, 139, 250, 0.15), rgba(139, 92, 246, 0.15))', color: '#a78bfa' },
+  'Todos': { icon: BookOpen, gradient: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02))', color: 'hsl(var(--accent-primary))' }
+};
+
+function UsersIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
 
 const readUserRole = () => {
   const token = localStorage.getItem('token');
@@ -28,6 +48,15 @@ export default function KnowledgeBase() {
   const [editId, setEditId] = useState(null);
 
   const categories = ['Todos', 'TI', 'Recursos Humanos', 'Financeiro', 'Dúvidas Frequentes', 'Processos Internos'];
+
+  const categoryCounts = useMemo(() => {
+    const counts = {};
+    categories.forEach(c => {
+      counts[c] = articles.filter(a => a.category === c).length;
+    });
+    counts['Todos'] = articles.length;
+    return counts;
+  }, [articles, categories]);
 
   const fetchArticles = async () => {
     try {
@@ -103,13 +132,115 @@ export default function KnowledgeBase() {
   });
 
   if (loading) return <div style={{ padding: '2rem' }}>Carregando base de conhecimento...</div>;
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingBottom: '3rem' }}>
+      {/* ── STYLES ─────────────────────────────────────────────────────── */}
+      <style>{`
+        .portal-hero {
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(15, 25, 50, 0.7) 100%);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 24px;
+          padding: 3rem 2rem;
+          text-align: center;
+          margin-bottom: 2.5rem;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        .portal-hero::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 60%);
+          pointer-events: none;
+        }
+        .search-capsule {
+          max-width: 600px;
+          margin: 1.5rem auto 0 auto;
+          position: relative;
+          background: rgba(15, 25, 50, 0.65);
+          backdrop-filter: blur(20px);
+          border: 1.5px solid rgba(255, 255, 255, 0.08);
+          border-radius: 100px;
+          padding: 4px 12px;
+          display: flex;
+          align-items: center;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .search-capsule:focus-within {
+          border-color: rgba(99, 102, 241, 0.5);
+          box-shadow: 0 0 15px rgba(99, 102, 241, 0.25);
+        }
+        .search-capsule input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          outline: none;
+          color: #fff;
+          padding: 0.75rem 1rem;
+          font-size: 1rem;
+        }
+        .category-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 1.25rem;
+          margin-bottom: 2.5rem;
+        }
+        .category-card {
+          border-radius: 18px;
+          padding: 1.5rem;
+          border: 1.5px solid rgba(255, 255, 255, 0.06);
+          cursor: pointer;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.75rem;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+        .category-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+        .category-card-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 0.25rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .article-card {
+          background: rgba(15, 25, 50, 0.45);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 16px;
+          padding: 1.5rem;
+          cursor: pointer;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        .article-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+          border-color: rgba(99, 102, 241, 0.3);
+        }
+      `}</style>
+
+      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ marginBottom: '0.25rem' }}>Base de Conhecimento</h1>
-          <p style={{ color: 'hsl(var(--text-secondary))' }}>Manuais, tutorias e documentações corporativas da empresa.</p>
+          <p style={{ color: 'hsl(var(--text-secondary))', margin: 0 }}>Manuais, tutoriais e documentações corporativas da empresa.</p>
         </div>
         {canManage && !isEditing && (
           <button 
@@ -206,97 +337,107 @@ export default function KnowledgeBase() {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '2rem' }}>
-          
-          {/* Sidebar categories */}
-          <div className="glass-card" style={{ padding: '1rem', height: 'fit-content' }}>
-            <h3 style={{ fontSize: '1rem', padding: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid hsl(var(--border))' }}>Categorias</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.75rem 1rem',
-                    border: 'none',
-                    borderRadius: 'var(--radius-md)',
-                    background: selectedCategory === cat ? 'hsla(var(--accent-primary), 0.15)' : 'transparent',
-                    color: selectedCategory === cat ? '#fff' : 'hsl(var(--text-secondary))',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    textAlign: 'left',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <span>{cat}</span>
-                  <ChevronRight size={14} style={{ opacity: selectedCategory === cat ? 1 : 0.3 }} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Articles list */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            
-            {/* Search */}
-            <div style={{ position: 'relative' }}>
-              <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))' }} size={20} />
+        <div>
+          {/* Hero Search Banner */}
+          <div className="portal-hero">
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#fff', margin: 0 }}>Como podemos ajudar você hoje?</h2>
+            <p style={{ fontSize: '0.95rem', color: 'hsl(var(--text-secondary))', marginTop: '0.5rem', marginBottom: '1.5rem' }}>Encontre respostas rápidas sobre TI, processos, finanças e regras corporativas.</p>
+            <div className="search-capsule">
+              <Search size={20} color="hsl(var(--text-muted))" style={{ marginLeft: '0.5rem' }} />
               <input 
                 type="text" 
-                className="input-field" 
-                style={{ paddingLeft: '3rem' }} 
                 placeholder="Pesquisar artigos de ajuda, tutoriais ou manuais..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
+              {searchTerm && <X size={18} color="hsl(var(--text-muted))" style={{ cursor: 'pointer', marginRight: '0.5rem' }} onClick={() => setSearchTerm('')} />}
             </div>
-
-            {filteredArticles.length === 0 ? (
-              <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
-                <BookOpen size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                <p>Nenhum artigo encontrado para os filtros selecionados.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                {filteredArticles.map(art => (
-                  <div 
-                    key={art.id} 
-                    className="glass-card" 
-                    style={{ padding: '1.5rem', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-                    onClick={() => setSelectedArticle(art)}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                        <span className="badge badge-info" style={{ fontSize: '0.65rem' }}><Tag size={10} style={{ marginRight: '0.25rem' }} /> {art.category}</span>
-                        {canManage && (
-                          <button 
-                            className="btn btn-secondary" 
-                            style={{ padding: '0.25rem', border: 'none', background: 'transparent' }}
-                            onClick={(e) => { e.stopPropagation(); handleDelete(art.id); }}
-                          >
-                            <Trash2 size={14} color="hsl(var(--danger))" />
-                          </button>
-                        )}
-                      </div>
-                      <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>{art.title}</h3>
-                      <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.5 }}>
-                        {art.content}
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid hsla(var(--border), 0.5)', fontSize: '0.8rem', color: 'hsl(var(--text-muted))' }}>
-                      <span>Por {art.createdByName || 'Sistema'}</span>
-                      <span>Ler mais →</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
           </div>
 
+          {/* Categories Grid */}
+          <div className="category-grid">
+            {categories.map(cat => {
+              const meta = CATEGORY_META[cat] || CATEGORY_META.Todos;
+              const IconComp = meta.icon;
+              const count = categoryCounts[cat] || 0;
+              const active = selectedCategory === cat;
+              return (
+                <div
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className="category-card"
+                  style={{
+                    background: active ? 'rgba(99, 102, 241, 0.12)' : 'rgba(15, 25, 50, 0.45)',
+                    borderColor: active ? 'hsl(var(--accent-primary))' : 'rgba(255,255,255,0.06)',
+                    boxShadow: active ? '0 0 15px rgba(99, 102, 241, 0.2)' : 'none'
+                  }}
+                >
+                  <div className="category-card-icon" style={{ background: meta.gradient }}>
+                    <IconComp size={20} color={meta.color} />
+                  </div>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', margin: 0 }}>{cat === 'Todos' ? 'Todos os Manuais' : cat}</h3>
+                  <span style={{ fontSize: '0.8rem', color: 'hsl(var(--text-secondary))' }}>{count} {count === 1 ? 'artigo' : 'artigos'}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Articles list header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: '#fff', margin: 0 }}>
+              {selectedCategory === 'Todos' ? 'Artigos em Destaque' : `Artigos em ${selectedCategory}`}
+            </h3>
+            {selectedCategory !== 'Todos' && (
+              <button 
+                onClick={() => setSelectedCategory('Todos')}
+                style={{ background: 'none', border: 'none', color: 'hsl(var(--accent-primary))', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
+              >
+                Ver todos
+              </button>
+            )}
+          </div>
+
+          {filteredArticles.length === 0 ? (
+            <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'hsl(var(--text-muted))', borderRadius: '18px' }}>
+              <BookOpen size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+              <p>Nenhum artigo encontrado nesta categoria com os filtros atuais.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+              {filteredArticles.map(art => (
+                <div 
+                  key={art.id} 
+                  className="article-card" 
+                  onClick={() => setSelectedArticle(art)}
+                >
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <span className="badge badge-info" style={{ fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Tag size={10} /> {art.category}
+                      </span>
+                      {canManage && (
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '0.25rem', border: 'none', background: 'transparent' }}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(art.id); }}
+                        >
+                          <Trash2 size={14} color="hsl(var(--danger))" />
+                        </button>
+                      )}
+                    </div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#fff', marginBottom: '0.75rem', lineHeight: 1.4 }}>{art.title}</h3>
+                    <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.88rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.6 }}>
+                      {art.content}
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '0.78rem', color: 'hsl(var(--text-muted))' }}>
+                    <span>Por {art.createdByName || 'Sistema'}</span>
+                    <span style={{ color: 'hsl(var(--accent-primary))', fontWeight: 600 }}>Ler mais →</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

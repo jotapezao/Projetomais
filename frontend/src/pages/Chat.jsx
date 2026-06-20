@@ -36,6 +36,47 @@ export default function Chat() {
   const [newRoomType, setNewRoomType] = useState('general');
   const [currentUser] = useState(() => readTokenPayload());
 
+  const [reactions, setReactions] = useState({});
+  const [typingUser, setTypingUser] = useState('');
+
+  const addReaction = (messageId, emoji) => {
+    setReactions(prev => {
+      const msgReactions = prev[messageId] || {};
+      const currentCount = msgReactions[emoji] || 0;
+      return {
+        ...prev,
+        [messageId]: {
+          ...msgReactions,
+          [emoji]: currentCount + 1
+        }
+      };
+    });
+  };
+
+  // Typing simulator effect
+  useEffect(() => {
+    if (!activeRoom) return;
+    setTypingUser('');
+
+    const timer = setTimeout(() => {
+      if (activeRoom.type === 'private') {
+        setTypingUser(activeRoom.name);
+      } else {
+        const members = ['Ana Paula', 'Bruno Santos', 'Lucas Medeiros', 'Mariana Costa'];
+        const randomName = members[Math.floor(Math.random() * members.length)];
+        setTypingUser(randomName);
+      }
+
+      const hideTimer = setTimeout(() => {
+        setTypingUser('');
+      }, 3500);
+
+      return () => clearTimeout(hideTimer);
+    }, 1800);
+
+    return () => clearTimeout(timer);
+  }, [activeRoom]);
+
   const messagesEndRef = useRef(null);
 
   // Hidden File Attachment simulated states
@@ -164,6 +205,71 @@ export default function Chat() {
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 120px)', gap: '1.5rem' }}>
+      {/* ── STYLES ─────────────────────────────────────────────────────── */}
+      <style>{`
+        .message-wrapper {
+          position: relative;
+        }
+        .reactions-popover {
+          position: absolute;
+          top: -24px;
+          background: rgba(15, 25, 50, 0.95);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 20px;
+          padding: 4px 8px;
+          display: none;
+          gap: 6px;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+          z-index: 10;
+        }
+        .message-wrapper:hover .reactions-popover {
+          display: flex;
+        }
+        .reaction-emoji {
+          cursor: pointer;
+          transition: transform 0.15s;
+          font-size: 0.9rem;
+        }
+        .reaction-emoji:hover {
+          transform: scale(1.3);
+        }
+        .reaction-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          padding: 2px 6px;
+          border-radius: 10px;
+          font-size: 0.72rem;
+          cursor: pointer;
+          transition: all 0.15s;
+          color: #fff;
+        }
+        .reaction-pill:hover {
+          background: rgba(99, 102, 241, 0.15);
+          border-color: rgba(99, 102, 241, 0.3);
+        }
+        .typing-dots {
+          display: flex;
+          gap: 3px;
+          align-items: center;
+        }
+        .typing-dots span {
+          width: 5px;
+          height: 5px;
+          background: hsl(var(--text-secondary));
+          border-radius: 50%;
+          animation: bounce-dot 1.4s infinite ease-in-out both;
+        }
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce-dot {
+          0%, 80%, 100% { transform: scale(0); }
+          40% { transform: scale(1.0); }
+        }
+      `}</style>
       
       {/* Channels List */}
       <div className="glass-card" style={{ width: '280px', display: 'flex', flexDirection: 'column' }}>
@@ -214,20 +320,36 @@ export default function Chat() {
           ))}
 
           <p style={{ fontSize: '0.75rem', fontWeight: '600', color: 'hsl(var(--text-muted))', textTransform: 'uppercase', margin: '1.5rem 0 0.5rem 0' }}>Diretas (Usuários)</p>
-          {filteredRooms.filter(r => r.type === 'private').map(room => (
-            <div 
-              key={room.id} 
-              onClick={() => setActiveRoom(room)}
-              style={{ 
-                padding: '0.75rem', borderRadius: 'var(--radius-md)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem',
-                background: activeRoom?.id === room.id ? 'hsla(var(--accent-primary), 0.15)' : 'transparent',
-                color: activeRoom?.id === room.id ? '#fff' : 'hsl(var(--text-secondary))'
-              }}
-            >
-              <User size={16} />
-              <span style={{ flex: 1, fontSize: '0.9rem', fontWeight: activeRoom?.id === room.id ? '500' : '400' }}>{room.name}</span>
-            </div>
-          ))}
+          {filteredRooms.filter(r => r.type === 'private').map(room => {
+            const isOnline = room.name.length % 2 === 0;
+            return (
+              <div 
+                key={room.id} 
+                onClick={() => setActiveRoom(room)}
+                style={{ 
+                  padding: '0.75rem', borderRadius: 'var(--radius-md)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                  background: activeRoom?.id === room.id ? 'hsla(var(--accent-primary), 0.15)' : 'transparent',
+                  color: activeRoom?.id === room.id ? '#fff' : 'hsl(var(--text-secondary))'
+                }}
+              >
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <User size={16} />
+                  <span style={{
+                    position: 'absolute',
+                    bottom: '-2px',
+                    right: '-2px',
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: isOnline ? '#10b981' : '#6b7280',
+                    border: '1.5px solid rgba(15, 25, 50, 0.9)',
+                    boxShadow: isOnline ? '0 0 6px #10b981' : 'none'
+                  }} />
+                </div>
+                <span style={{ flex: 1, fontSize: '0.9rem', fontWeight: activeRoom?.id === room.id ? '500' : '400' }}>{room.name}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -254,14 +376,25 @@ export default function Chat() {
           ) : (
             messages.map(msg => {
               const isMine = msg.senderId === currentUserId;
+              const msgReactions = reactions[msg.id] || {};
               return (
-                <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
+                <div key={msg.id} className="message-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start', position: 'relative', width: '100%' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.25rem' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: '500', color: isMine ? 'hsl(var(--accent-primary))' : 'hsl(var(--text-secondary))' }}>
                       {isMine ? 'Você' : msg.senderName}
                     </span>
                     <span style={{ fontSize: '0.7rem', color: 'hsl(var(--text-muted))' }}>{msg.time}</span>
                   </div>
+
+                  {/* Reactions Popover */}
+                  <div className="reactions-popover" style={{ left: isMine ? 'auto' : '12px', right: isMine ? '12px' : 'auto' }}>
+                    {['👍', '❤️', '😂', '😮', '😢', '🎉'].map(emoji => (
+                      <span key={emoji} className="reaction-emoji" onClick={() => addReaction(msg.id, emoji)}>
+                        {emoji}
+                      </span>
+                    ))}
+                  </div>
+
                   <div style={{ 
                     padding: '0.75rem 1rem', 
                     background: isMine ? 'hsl(var(--accent-primary))' : 'hsl(var(--bg-secondary))',
@@ -272,13 +405,37 @@ export default function Chat() {
                     maxWidth: '70%',
                     lineHeight: 1.5,
                     fontSize: '0.95rem',
-                    whiteSpace: 'pre-wrap'
+                    whiteSpace: 'pre-wrap',
+                    border: '1px solid rgba(255,255,255,0.05)'
                   }}>
-                    {msg.text}
+                    <div>{msg.text}</div>
+
+                    {/* Reaction Pills */}
+                    {Object.keys(msgReactions).length > 0 && (
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
+                        {Object.entries(msgReactions).map(([emoji, count]) => (
+                          <span key={emoji} className="reaction-pill" onClick={(e) => { e.stopPropagation(); addReaction(msg.id, emoji); }}>
+                            {emoji} <span style={{ opacity: 0.8, fontSize: '0.65rem' }}>{count}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
             })
+          )}
+          {typingUser && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', width: 'fit-content', border: '1px solid rgba(255,255,255,0.04)', marginLeft: '12px' }}>
+              <span style={{ fontSize: '0.8rem', color: 'hsl(var(--text-secondary))' }}>
+                <strong>{typingUser}</strong> está digitando
+              </span>
+              <div className="typing-dots">
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
           )}
           <div ref={messagesEndRef} />
         </div>

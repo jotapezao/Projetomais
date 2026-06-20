@@ -61,14 +61,22 @@ function SLABadge({ ticket }) {
     }
     const update = () => {
       const diff = new Date(ticket.slaEscalationTime) - new Date();
-      if (diff <= 0) { setText('🚨 SLA Violado'); setCls('sla-violated'); return; }
+      if (diff <= 0) {
+        const elapsed = Math.floor(Math.abs(diff) / 60000);
+        const h = Math.floor(elapsed / 60);
+        const m = elapsed % 60;
+        setText(`🚨 Atrasado (${h}h${m}m)`);
+        setCls('sla-violated');
+        return;
+      }
       const mins = Math.floor(diff / 60000);
       const h = Math.floor(mins / 60); const m = mins % 60;
-      if (mins < 60) { setText(`⚠️ ${m}min`); setCls('sla-warning'); }
-      else { setText(`⏳ ${h}h${m}m`); setCls('sla-ok'); }
+      const secs = Math.floor((diff % 60000) / 1000);
+      if (mins < 60) { setText(`⚠️ Resta ${m}m ${secs}s`); setCls('sla-warning'); }
+      else { setText(`⏳ Resta ${h}h ${m}m`); setCls('sla-ok'); }
     };
     update();
-    const i = setInterval(update, 15000);
+    const i = setInterval(update, 1000);
     return () => clearInterval(i);
   }, [ticket]);
 
@@ -112,18 +120,33 @@ function SLAProgressBar({ ticket }) {
     ? (violated ? '#ef4444' : '#22c55e')
     : progress > 85 ? '#ef4444' : progress > 55 ? '#f97316' : '#22c55e';
 
+  const barGradient = isResolved
+    ? (violated ? 'linear-gradient(90deg, #ef4444, #b91c1c)' : 'linear-gradient(90deg, #22c55e, #15803d)')
+    : progress > 85
+      ? 'linear-gradient(90deg, #ef4444, #f97316)'
+      : progress > 55
+        ? 'linear-gradient(90deg, #f97316, #eab308)'
+        : 'linear-gradient(90deg, #10b981, #10b981)';
+
   return (
     <div style={{ marginTop: '1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '6px', color: 'hsl(var(--text-secondary))' }}>
         <span>Progresso SLA</span>
-        <span style={{ color: barColor, fontWeight: 600 }}>
+        <span style={{ color: barColor, fontWeight: 700 }}>
           {isResolved ? (violated ? '🚨 SLA Violado' : '✅ SLA Cumprido') : `${progress}% consumido`}
         </span>
       </div>
-      <div style={{ height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: isResolved ? '100%' : `${progress}%`, background: barColor, transition: 'width 0.6s ease', borderRadius: '4px' }} />
+      <div style={{ height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '99px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.04)', position: 'relative' }}>
+        <div style={{
+          height: '100%',
+          width: isResolved ? '100%' : `${progress}%`,
+          background: barGradient,
+          transition: 'width 0.4s ease',
+          borderRadius: '99px',
+          boxShadow: `0 0 8px ${barColor}55`
+        }} />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginTop: '4px', color: 'hsl(var(--text-muted))' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginTop: '6px', color: 'hsl(var(--text-muted))' }}>
         <span>Abertura: {formatDate(created)}</span>
         <span>Prazo: {formatDate(limit)}</span>
       </div>
@@ -177,6 +200,7 @@ export default function Tickets() {
   const [filterCategory, setFilterCategory] = useState('todas');
   const [filterOperator, setFilterOperator] = useState('todos');
   const [filterPeriod, setFilterPeriod] = useState('todos');
+  const [filterQuick, setFilterQuick] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Modals
@@ -241,6 +265,34 @@ export default function Tickets() {
     }
   }, [selectedTicket?.id]);
 
+  // ─── Quick Filter Counts ───────────────────────────────────────────────────
+  const quickFilterCounts = useMemo(() => {
+    const now = new Date();
+    let hoje = 0, semana = 0, atrasados = 0, criticos = 0;
+
+    tickets.forEach(t => {
+      const tDate = new Date(t.createdAt || t.history?.[0]?.updatedAt);
+      
+      // Hoje (same calendar day)
+      const todayCutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (tDate >= todayCutoff) hoje++;
+
+      // Semana (last 7 days)
+      const weekCutoff = new Date(now.getTime() - 7 * 86400000);
+      if (tDate >= weekCutoff) semana++;
+
+      // Atrasados
+      const isResolved = t.status === 'resolvido' || t.status === 'fechado';
+      const isViolated = new Date(t.slaEscalationTime) < now;
+      if (!isResolved && isViolated) atrasados++;
+
+      // Criticos
+      if (t.priority === 'critica' || t.priority === 'alta') criticos++;
+    });
+
+    return { hoje, semana, atrasados, criticos, todos: tickets.length };
+  }, [tickets]);
+
   // ─── Filtered Tickets ──────────────────────────────────────────────────────
   const filteredTickets = useMemo(() => {
     const now = new Date();
@@ -257,6 +309,22 @@ export default function Tickets() {
         const cutoff = new Date(now.getTime() - days * 86400000);
         if (new Date(t.createdAt || t.history?.[0]?.updatedAt) < cutoff) return false;
       }
+      if (filterQuick !== 'todos') {
+        const tDate = new Date(t.createdAt || t.history?.[0]?.updatedAt);
+        if (filterQuick === 'hoje') {
+          const todayCutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          if (tDate < todayCutoff) return false;
+        } else if (filterQuick === 'semana') {
+          const weekCutoff = new Date(now.getTime() - 7 * 86400000);
+          if (tDate < weekCutoff) return false;
+        } else if (filterQuick === 'atrasados') {
+          const isResolved = t.status === 'resolvido' || t.status === 'fechado';
+          const isViolated = new Date(t.slaEscalationTime) < now;
+          if (isResolved || !isViolated) return false;
+        } else if (filterQuick === 'criticos') {
+          if (t.priority !== 'critica' && t.priority !== 'alta') return false;
+        }
+      }
       if (searchTerm) {
         const s = searchTerm.toLowerCase();
         if (!t.subject.toLowerCase().includes(s) && !t.id.toLowerCase().includes(s) &&
@@ -264,14 +332,14 @@ export default function Tickets() {
       }
       return true;
     });
-  }, [tickets, filterStatus, filterPriority, filterCategory, filterOperator, filterPeriod, searchTerm]);
+  }, [tickets, filterStatus, filterPriority, filterCategory, filterOperator, filterPeriod, filterQuick, searchTerm]);
 
   const hasActiveFilters = filterStatus !== 'todos' || filterPriority !== 'todas' ||
-    filterCategory !== 'todas' || filterOperator !== 'todos' || filterPeriod !== 'todos' || searchTerm;
+    filterCategory !== 'todas' || filterOperator !== 'todos' || filterPeriod !== 'todos' || filterQuick !== 'todos' || searchTerm;
 
   const clearFilters = () => {
     setFilterStatus('todos'); setFilterPriority('todas'); setFilterCategory('todas');
-    setFilterOperator('todos'); setFilterPeriod('todos'); setSearchTerm('');
+    setFilterOperator('todos'); setFilterPeriod('todos'); setFilterQuick('todos'); setSearchTerm('');
   };
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
@@ -541,6 +609,54 @@ export default function Tickets() {
         <div style={{ fontSize: '0.78rem', color: 'hsl(var(--text-muted))' }}>
           Exibindo <strong style={{ color: 'hsl(var(--text-primary))' }}>{filteredTickets.length}</strong> de <strong style={{ color: 'hsl(var(--text-primary))' }}>{tickets.length}</strong> chamados
         </div>
+      </div>
+
+      {/* Quick Temporal Filters */}
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+        {[
+          { id: 'todos', label: 'Todos os Chamados', count: quickFilterCounts.todos, color: 'var(--accent-primary)', bg: 'rgba(99, 102, 241, 0.1)' },
+          { id: 'hoje', label: 'Hoje', count: quickFilterCounts.hoje, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
+          { id: 'semana', label: 'Esta Semana', count: quickFilterCounts.semana, color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
+          { id: 'atrasados', label: 'SLA Atrasados', count: quickFilterCounts.atrasados, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', alert: true },
+          { id: 'criticos', label: 'Prioridade Alta/Crítica', count: quickFilterCounts.criticos, color: '#f97316', bg: 'rgba(249, 115, 22, 0.1)', alert: true }
+        ].map(opt => {
+          const active = filterQuick === opt.id;
+          return (
+            <button
+              key={opt.id}
+              onClick={() => setFilterQuick(opt.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '24px',
+                background: active ? opt.bg : 'rgba(15, 25, 50, 0.4)',
+                border: `1.5px solid ${active ? opt.color : 'rgba(255,255,255,0.06)'}`,
+                color: active ? '#fff' : 'hsl(var(--text-secondary))',
+                cursor: 'pointer',
+                fontSize: '0.82rem',
+                fontWeight: active ? 700 : 500,
+                transition: 'all 0.2s ease',
+                boxShadow: active ? `0 0 12px ${opt.color}25` : 'none',
+              }}
+              className="quick-filter-pill"
+            >
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: opt.color }} />
+              <span>{opt.label}</span>
+              <span style={{
+                fontSize: '0.72rem',
+                padding: '2px 7px',
+                borderRadius: '10px',
+                background: opt.alert && opt.count > 0 ? '#ef4444' : 'rgba(255,255,255,0.08)',
+                color: opt.alert && opt.count > 0 ? '#fff' : 'hsl(var(--text-secondary))',
+                fontWeight: 600
+              }}>
+                {opt.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── TICKET LIST ───────────────────────────────────────────────────── */}

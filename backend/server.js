@@ -28,6 +28,7 @@ import adminRoutes from './src/routes/admin.js';
 import knowledgeRoutes from './src/routes/knowledge.js';
 import chatRoutes from './src/routes/chat.js';
 import dashboardRoutes from './src/routes/dashboard.js';
+import aiRoutes from './src/routes/ai.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,6 +57,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/ai', aiRoutes);
 
 // ... (existing mock routes)
 app.get('/api/emails/simulated', async (req, res) => {
