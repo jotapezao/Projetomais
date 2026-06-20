@@ -292,6 +292,35 @@ const ProMaisAIWidget = () => {
     try {
       const res = await client.post('/ai/chat', { message: textToSend });
       setChatMsgs(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: res.data.reply }]);
+
+      // Process automated actions from backend
+      if (res.data.actions && res.data.actions.length > 0) {
+        for (const action of res.data.actions) {
+          if (action.type === 'create_ticket') {
+            try {
+              // Call API to create ticket on user's behalf
+              const ticketRes = await client.post('/tickets', action.payload);
+              const ticket = ticketRes.data;
+              
+              // Give some short delay to simulate creation processing for premium UX
+              await new Promise(resolve => setTimeout(resolve, 800));
+
+              setChatMsgs(prev => [...prev, {
+                id: Date.now() + 2,
+                sender: 'ai',
+                text: `⚙️ **Abertura de Chamado Realizada!**\n\nRegistrei o incidente automaticamente com os seguintes dados:\n• **Chamado:** #${ticket.id}\n• **Assunto:** "${ticket.subject}"\n• **Categoria:** ${ticket.category}\n• **Prioridade:** ${ticket.priority.toUpperCase()}\n• **SLA Escalação:** ${new Date(ticket.slaEscalationTime).toLocaleString()}\n\nUm técnico de suporte foi notificado.`
+              }]);
+            } catch (ticketErr) {
+              console.error("Erro ao registrar chamado via IA:", ticketErr);
+              setChatMsgs(prev => [...prev, {
+                id: Date.now() + 2,
+                sender: 'ai',
+                text: `❌ **Falha na Ação Automatizada:** Não consegui registrar o chamado automaticamente no sistema. Por favor, tente criar pela aba lateral "Chamados".`
+              }]);
+            }
+          }
+        }
+      }
     } catch {
       setChatMsgs(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: 'Desculpe, tive um problema ao me conectar ao servidor de IA.' }]);
     } finally {

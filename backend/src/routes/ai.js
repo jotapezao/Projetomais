@@ -1,9 +1,19 @@
 import express from 'express';
 import { dbService } from '../database/db.js';
 import { verifyToken } from '../middleware/authMiddleware.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = express.Router();
 router.use(verifyToken);
+
+// Inicializar Google Generative AI se a chave estiver presente
+const apiKey = process.env.GEMINI_API_KEY;
+let genAI = null;
+if (apiKey) {
+  genAI = new GoogleGenerativeAI(apiKey);
+} else {
+  console.warn("⚠️ AVISO: GEMINI_API_KEY não configurada nas variáveis de ambiente. O chatbot usará o motor de regras locais como fallback.");
+}
 
 // AI Assistant Chatbot Copilot
 router.post('/chat', async (req, res) => {
@@ -12,6 +22,86 @@ router.post('/chat', async (req, res) => {
     return res.status(400).json({ error: 'Mensagem vazia' });
   }
 
+  // 1. Tentar executar com a inteligência real do Gemini RAG
+  if (genAI) {
+    try {
+      // Buscar chamados relevantes para contextualização (segurança de escopo incluída)
+      const allTickets = await dbService.getCollection('tickets');
+      let userTickets = [];
+      if (req.user) {
+        const isStaff = ['super_admin', 'admin', 'gestor', 'coordenador', 'operador'].includes(req.user.role);
+        if (isStaff) {
+          userTickets = allTickets;
+        } else {
+          userTickets = allTickets.filter(t => t.companyId === req.user.companyId || t.createdBy === req.user.id);
+        }
+      }
+
+      // Buscar artigos de conhecimento relevantes
+      const allArticles = await dbService.getCollection('knowledge');
+      let userArticles = allArticles;
+      if (req.user && req.user.role !== 'super_admin') {
+        userArticles = allArticles.filter(art => art.companyId === req.user.companyId || !art.companyId);
+      }
+
+      // Formatar contexto estruturado
+      const userProfileText = `Nome: ${req.user.name} ${req.user.lastName || ''}\nE-mail: ${req.user.email}\nCargo: ${req.user.role}\nEmpresa ID: ${req.user.companyId}`;
+      const ticketsText = userTickets.slice(0, 10).map(t => 
+        `- Chamado #${t.id}: "${t.subject}" | Status: ${t.status} | Prioridade: ${t.priority} | Operador: ${t.operatorName || 'Não atribuído'} | Descrição: "${t.description}"`
+      ).join('\n');
+      const articlesText = userArticles.map(a => 
+        `- Categoria: ${a.category} | Título: "${a.title}"\nProcedimento:\n${a.content}`
+      ).join('\n\n');
+
+      const systemInstruction = `Você é o "ProMais AI", o copiloto e assistente inteligente oficial de suporte técnico da Lojas Moda Verão.
+Sua missão é ajudar os funcionários a:
+1. Consultar o status dos chamados de suporte abertos.
+2. Responder a dúvidas de procedimentos de TI e processos internos com base nos manuais de ajuda fornecidos abaixo.
+3. Propor a abertura de chamados automaticamente caso o usuário esteja relatando um problema que não pôde ser resolvido ou se ele solicitar explicitamente a abertura de um chamado.
+
+Instruções sobre o banco de dados e ações:
+- Se você determinar que um novo chamado deve ser aberto (por exemplo, o usuário diz "abra um chamado para mim" ou tem um problema técnico sem solução nos manuais), você deve gerar uma ação do tipo "create_ticket" na lista de ações ("actions").
+- O objeto de ação no JSON deve ser: { "type": "create_ticket", "payload": { "subject": "Assunto curto e descritivo", "description": "Descrição detalhada do problema baseada na mensagem do usuário", "category": "TI e Infraestrutura" | "Sistemas e Bugs" | "Recursos Humanos" | "Financeiro", "priority": "baixa" | "media" | "alta" | "critica" } }. Escolha a categoria e prioridade mais adequadas para o caso.
+- Não crie chamados se a dúvida for informativa e o manual resolver o problema.
+
+Dados do Usuário Atual com quem você está conversando:
+${userProfileText}
+
+Lista de Chamados Recentes deste Usuário/Empresa:
+${ticketsText || "Nenhum chamado encontrado."}
+
+Manuais de Suporte Disponíveis (Base de Conhecimento):
+${articlesText || "Nenhum manual de ajuda encontrado."}
+
+Você DEVE responder rigorosamente em formato JSON com o seguinte formato de dados (Response Schema):
+{
+  "reply": "Sua resposta amigável e profissional explicando o passo a passo ou informando sobre os chamados. Formate o texto em markdown, use emojis de forma elegante.",
+  "actions": [
+    // Array de ações. Opcional. Se for abrir um chamado, inclua o objeto create_ticket mencionado acima.
+  ]
+}
+Sua resposta final deve ser um JSON válido contendo os campos "reply" e "actions". Não inclua blocos de código markdown (\`\`\`json ...) na resposta, apenas o texto JSON puro.`;
+
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        generationConfig: { responseMimeType: "application/json" }
+      });
+      
+      const prompt = `${systemInstruction}\n\nMensagem do Usuário: "${message}"`;
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text();
+      const parsed = JSON.parse(responseText);
+
+      return res.json({
+        reply: parsed.reply || "Formulei uma resposta, mas não encontrei conteúdo válido.",
+        actions: parsed.actions || []
+      });
+    } catch (geminiError) {
+      console.error("Erro na API do Gemini. Usando fallback de regras locais.", geminiError);
+    }
+  }
+
+  // 2. Fallback de regras locais (Heurísticas locais sem chave de API)
   const cleanMsg = message.toLowerCase();
   let reply = '';
   let actions = [];
@@ -20,7 +110,6 @@ router.post('/chat', async (req, res) => {
     // 1. Ask for ticket summaries
     if (cleanMsg.includes('resumir chamado') || cleanMsg.includes('resumo do chamado') || cleanMsg.includes('resuma')) {
       const tickets = await dbService.getCollection('tickets');
-      // Try to find ticket code in the message (e.g. tkt-1 or 1)
       const ticketMatch = cleanMsg.match(/(tkt-\d+)/) || cleanMsg.match(/#?(\d+)/);
       const ticketId = ticketMatch ? (ticketMatch[1].startsWith('tkt') ? ticketMatch[1] : `tkt-${ticketMatch[1]}`) : null;
       
@@ -48,12 +137,12 @@ router.post('/chat', async (req, res) => {
       if (ticket) {
         const isCritical = ticket.priority === 'critica' || ticket.priority === 'alta';
         const operatorAssigned = Boolean(ticket.operatorId);
-        let riskScore = 15; // default low risk
+        let riskScore = 15;
         
         if (isCritical && !operatorAssigned) riskScore = 85;
         else if (isCritical && operatorAssigned) riskScore = 45;
         else if (!operatorAssigned) riskScore = 60;
-
+ 
         reply = `**Previsão de Risco de SLA para o Chamado #${ticket.id}:**\n\n` +
           `• **Probabilidade de Atraso:** ${riskScore}%\n` +
           `• **Status do SLA:** Limite em ${new Date(ticket.slaEscalationTime).toLocaleString()}\n` +
@@ -79,15 +168,14 @@ router.post('/chat', async (req, res) => {
       const tickets = await dbService.getCollection('tickets');
       const staff = users.filter(u => ['super_admin', 'admin', 'team_admin', 'channel_admin'].includes(u.role));
       
-      // Calculate workload
       const workloads = staff.map(member => {
         const count = tickets.filter(t => t.operatorId === member.id && !['resolvido', 'fechado'].includes(t.status)).length;
         return { member, count };
       }).sort((a, b) => a.count - b.count);
-
+ 
       if (workloads.length > 0) {
         const best = workloads[0];
-        reply = `**Recomendação de Responsável da IA:**\n\n` +
+        reply = `**Recomendação de Responsável da IA (Modo Fallback):**\n\n` +
           `Recomendo atribuir esta atividade ao técnico/operador **${best.member.name} ${best.member.lastName}**.\n` +
           `• **Carga atual:** ${best.count} chamados abertos.\n` +
           `• **Disponibilidade:** Alta (menor fila de atendimento no momento).\n` +
@@ -97,28 +185,44 @@ router.post('/chat', async (req, res) => {
       }
     }
     // 5. Search Help/Knowledge articles
-    else if (cleanMsg.includes('ajuda') || cleanMsg.includes('documento') || cleanMsg.includes('como') || cleanMsg.includes('conhecimento')) {
+    else if (cleanMsg.includes('ajuda') || cleanMsg.includes('documento') || cleanMsg.includes('como') || cleanMsg.includes('conhecimento') || cleanMsg.includes('vpn') || cleanMsg.includes('impressora') || cleanMsg.includes('zebra') || cleanMsg.includes('senha') || cleanMsg.includes('pdv')) {
       const articles = await dbService.getCollection('knowledge');
       const keywords = cleanMsg.split(' ').filter(w => w.length > 3);
       const matches = articles.filter(art => 
         keywords.some(kw => art.title.toLowerCase().includes(kw) || art.content.toLowerCase().includes(kw))
       );
-
+ 
       if (matches.length > 0) {
-        reply = `**Artigos Relacionados na Base de Conhecimento:**\n\n` +
-          matches.slice(0, 2).map(art => `• **${art.title}** (${art.category}): "${art.content.slice(0, 100)}..."`).join('\n\n') +
-          `\n\n*Precisa de mais detalhes sobre algum destes Manuais?*`;
+        reply = `**Artigos Relacionados na Base de Conhecimento (Modo Fallback):**\n\n` +
+          matches.slice(0, 2).map(art => `• **${art.title}** (${art.category}): "${art.content.slice(0, 150)}..."`).join('\n\n') +
+          `\n\n*Caso o procedimento acima não resolva o problema, solicite o registro de um chamado digitando 'abrir chamado' no chat.*`;
       } else {
-        reply = `**Resposta ProMais AI:**\n\n` +
+        reply = `**Resposta ProMais AI (Modo Fallback):**\n\n` +
           `Olá! Eu sou o assistente inteligente da plataforma Mais Tecnologia. Posso ajudá-lo a gerenciar as operações do dia a dia da Lojas Moda Verão.\n\n` +
           `Experimente me perguntar:\n` +
           `• *"Resumir chamado tkt-1"*\n` +
           `• *"Prever SLA do chamado tkt-1"*\n` +
           `• *"Sugerir técnico para o chamado"*\n` +
-          `• *"Sugerir subtarefas de implantação"*`;
+          `• *"Como configuro a VPN?"*`;
       }
     }
-    // 6. Generic greeting / helper instructions
+    // 6. Action-based ticket creation fallback
+    else if (cleanMsg.includes('abrir chamado') || cleanMsg.includes('criar chamado') || cleanMsg.includes('novo chamado') || cleanMsg.includes('registre um chamado')) {
+      reply = `**Abertura de Chamado Solicitada (Modo Fallback):**\n\n` +
+        `Estou acionando a automação de abertura de chamados. Um novo chamado de suporte técnico sobre problemas relatados será criado imediatamente.`;
+      
+      // We trigger a fallback auto-creation of a ticket
+      actions = [{
+        type: 'create_ticket',
+        payload: {
+          subject: 'Chamado Aberto via Copiloto IA (Fallback)',
+          description: `O colaborador solicitou a abertura de um chamado de suporte via chat. Mensagem original: "${message}"`,
+          category: 'TI e Infraestrutura',
+          priority: 'media'
+        }
+      }];
+    }
+    // 7. Generic greeting / helper instructions
     else {
       reply = `**Olá, ${req.user.name || 'Usuário'}! Eu sou o ProMais AI.**\n\n` +
         `Como copiloto oficial do sistema de gestão, posso executar análises em tempo real para otimizar seus projetos, chamados e processos da Lojas Moda Verão.\n\n` +
@@ -126,7 +230,8 @@ router.post('/chat', async (req, res) => {
         `• 🔎 Buscar manuais de ajuda (ex: *"Como configurar VPN"*)\n` +
         `• 📊 Prever riscos de SLA (ex: *"Prever SLA do chamado tkt-1"*)\n` +
         `• 📝 Resumir atendimentos (ex: *"Resumir chamado tkt-1"*)\n` +
-        `• 👥 Otimizar técnicos (ex: *"Quem está livre para chamado?"*)`;
+        `• 👥 Otimizar técnicos (ex: *"Quem está livre para chamado?"*)\n` +
+        `• ⚙️ Criar chamados (ex: *"abrir chamado para impressora"*);`;
     }
 
     res.json({ reply, actions });

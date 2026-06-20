@@ -148,6 +148,69 @@ export async function initializeDB() {
       }
       console.log("Dados iniciais inseridos com sucesso.");
     }
+
+    // Seed secundário para a base de conhecimento (knowledge) caso esteja vazia
+    const { rows: kbRows } = await pool.query(
+      `SELECT 1 FROM data_store WHERE collection_name = 'knowledge' LIMIT 1`
+    );
+
+    if (kbRows.length === 0) {
+      console.log("Base de conhecimento vazia. Inserindo artigos corporativos padrão...");
+      const initialArticles = [
+        {
+          id: 'kb-vpn-001',
+          title: 'Como Configurar e Acessar a VPN Corporativa',
+          category: 'TI',
+          content: 'Procedimento de acesso remoto seguro para colaboradores:\n1. Baixe e instale o FortiClient VPN oficial.\n2. Abra o cliente e selecione \'Configurar VPN\'.\n3. Nome da conexão: VPN Moda Verão.\n4. Endereço do Servidor: vpn.modaverao.com.br, Porta: 443.\n5. Insira suas credenciais do Active Directory (@modaverao.com.br).\n6. Clique em conectar. Caso ocorra erro de MFA, verifique se o aplicativo Microsoft Authenticator está aberto no seu celular corporativo.',
+          status: 'published',
+          companyId: 'comp-1',
+          createdBy: 'usr-1',
+          createdByName: 'João Paulo',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'kb-print-001',
+          title: 'Impressora de Etiquetas Zebra Travada ou Piscando',
+          category: 'TI',
+          content: 'Solução rápida para travas em impressoras térmicas de etiquetas:\n1. Desligue a impressora Zebra no botão físico traseiro.\n2. No computador, abra o Painel de Controle > Dispositivos e Impressoras.\n3. Dê duplo clique na impressora Zebra, clique em \'Impressora\' no menu superior e selecione \'Cancelar Todos os Documentos\'.\n4. Abra o menu Iniciar do Windows, digite \'Serviços\' e abra o gerenciador.\n5. Localize o serviço \'Spooler de Impressão\', clique com o botão direito e selecione \'Reiniciar\'.\n6. Ligue a impressora física Zebra novamente. Ela fará o alinhamento automático da fita e voltará a imprimir.',
+          status: 'published',
+          companyId: 'comp-1',
+          createdBy: 'usr-1',
+          createdByName: 'João Paulo',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'kb-pass-001',
+          title: 'Redefinir Senha do E-mail e Teams',
+          category: 'TI',
+          content: 'Como recuperar acesso à sua conta corporativa:\n1. Acesse o site oficial: https://passwordreset.microsoftonline.com/\n2. Insira seu e-mail corporativo institucional (@modaverao.com.br).\n3. Digite os caracteres de validação de segurança.\n4. Escolha receber o código via SMS no seu telefone cadastrado ou via notificação do Authenticator.\n5. Digite o código recebido e escolha sua nova senha (mínimo de 8 caracteres, contendo números, letras maiúsculas e caracteres especiais).\n*Nota: Se você perdeu o acesso ao seu número de telefone de recuperação, fale com a IA ou abra um chamado para que a TI redefina manualmente.*',
+          status: 'published',
+          companyId: 'comp-1',
+          createdBy: 'usr-1',
+          createdByName: 'João Paulo',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'kb-pdv-001',
+          title: 'Sistema de Vendas (PDV) Desconectado ou Lento',
+          category: 'Processos Internos',
+          content: 'Procedimento para solucionar quedas ou lentidão no Caixa:\n1. Verifique se o cabo de rede azul RJ45 está bem conectado na traseira do computador do caixa.\n2. Se a rede estiver conectada e o sistema travado, pressione \'F5\' no teclado para recarregar a interface da aplicação.\n3. Se o erro persistir, reinicie o terminal de pagamentos (Pinpad/POS físico) desconectando-o da tomada de energia, aguardando 10 segundos e conectando novamente.\n4. Caso o sistema continue offline, abra um chamado com a TI para verificação de cabo de fibra ótica ou roteador da loja.',
+          status: 'published',
+          companyId: 'comp-1',
+          createdBy: 'usr-1',
+          createdByName: 'João Paulo',
+          createdAt: new Date().toISOString()
+        }
+      ];
+
+      for (const art of initialArticles) {
+        await pool.query(
+          `INSERT INTO data_store (collection_name, id, data) VALUES ($1, $2, $3)`,
+          ['knowledge', art.id, JSON.stringify(art)]
+        );
+      }
+      console.log("Artigos da base de conhecimento semeados com sucesso.");
+    }
   } catch (err) {
     console.error("Erro ao inicializar o banco de dados:", err);
   }
