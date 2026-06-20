@@ -38,6 +38,47 @@ export default function Chat() {
 
   const messagesEndRef = useRef(null);
 
+  // Hidden File Attachment simulated states
+  const fileInputRef = useRef(null);
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [uploadFileName, setUploadFileName] = useState('');
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !activeRoom) return;
+
+    setUploadFileName(file.name);
+    setUploadProgress(10);
+
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setTimeout(async () => {
+            try {
+              const sizeKB = Math.round(file.size / 1024);
+              const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
+              const fileMessage = `📎 [Arquivo Anexado: ${file.name} (${sizeStr})]`;
+              
+              const res = await client.post('/chat/messages', {
+                roomId: activeRoom.id,
+                text: fileMessage
+              });
+              setMessages(prevMsgs => [...prevMsgs, res.data]);
+            } catch (error) {
+              console.error("Erro ao enviar anexo", error);
+            } finally {
+              setUploadProgress(null);
+              setUploadFileName('');
+            }
+          }, 300);
+          return 100;
+        }
+        return prev + 30;
+      });
+    }, 200);
+  };
+
   // Fetch rooms on mount
   useEffect(() => {
     const fetchRooms = async () => {
@@ -243,10 +284,32 @@ export default function Chat() {
         </div>
 
         {/* Input */}
+        {uploadProgress !== null && (
+          <div style={{ padding: '0.5rem 1.5rem', background: 'hsla(var(--accent-primary), 0.1)', borderTop: '1px solid hsla(var(--accent-primary), 0.2)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ fontSize: '0.8rem', color: 'hsl(var(--accent-primary-hover))' }}>Enviando {uploadFileName}...</span>
+            <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${uploadProgress}%`, background: 'hsl(var(--accent-primary))', transition: 'width 0.1s ease' }} />
+            </div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{uploadProgress}%</span>
+          </div>
+        )}
         <div style={{ padding: '1.5rem', borderTop: '1px solid hsl(var(--border))' }}>
           <form onSubmit={handleSend} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              style={{ display: 'none' }} 
+              onChange={handleFileChange} 
+            />
             <div style={{ flex: 1, background: 'hsl(var(--bg-secondary))', borderRadius: 'var(--radius-md)', padding: '0.5rem', display: 'flex', alignItems: 'flex-end', border: '1px solid hsl(var(--border))' }}>
-              <button type="button" className="btn" style={{ padding: '0.5rem', color: 'hsl(var(--text-muted))' }}><Paperclip size={20} /></button>
+              <button 
+                type="button" 
+                className="btn" 
+                style={{ padding: '0.5rem', color: 'hsl(var(--text-muted))' }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip size={20} />
+              </button>
               <textarea 
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}

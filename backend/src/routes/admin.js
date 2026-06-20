@@ -181,4 +181,75 @@ router.post('/backup/restore-test', async (req, res) => {
   }
 });
 
+// List corporate users
+router.get('/users', async (req, res) => {
+  try {
+    const users = await dbService.getCollection('users');
+    const currentUser = await dbService.getById('users', req.user.id);
+    
+    if (currentUser.role === 'super_admin' || currentUser.role === 'system_admin') {
+      res.json(users.map(({ password, ...u }) => u));
+    } else {
+      const companyUsers = users.filter(u => u.companyId === currentUser.companyId);
+      res.json(companyUsers.map(({ password, ...u }) => u));
+    }
+  } catch (err) {
+    res.status(500).json({ message: 'Erro ao buscar usuários.' });
+  }
+});
+
+// Update corporate user details
+router.put('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await dbService.getById('users', id);
+    if (!existing) return res.status(404).json({ message: 'Usuário não encontrado.' });
+
+    const currentUser = await dbService.getById('users', req.user.id);
+    if (currentUser.role !== 'super_admin' && currentUser.role !== 'system_admin' && existing.companyId !== currentUser.companyId) {
+      return res.status(403).json({ message: 'Sem permissão para editar este usuário.' });
+    }
+
+    const { role, status, name, lastName, email } = req.body;
+    const updatedPayload = {
+      ...existing,
+      ...(role && { role }),
+      ...(status && { status }),
+      ...(name && { name }),
+      ...(lastName && { lastName }),
+      ...(email && { email: email.toLowerCase() })
+    };
+
+    const updated = await dbService.update('users', id, updatedPayload, req.user.id, req.user.name);
+    const { password, ...userWithoutPassword } = updated;
+    res.json(userWithoutPassword);
+  } catch (err) {
+    res.status(500).json({ message: 'Erro ao atualizar usuário.' });
+  }
+});
+
+// Delete corporate user
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (id === req.user.id) {
+      return res.status(400).json({ message: 'Você não pode excluir a si mesmo.' });
+    }
+
+    const existing = await dbService.getById('users', id);
+    if (!existing) return res.status(404).json({ message: 'Usuário não encontrado.' });
+
+    const currentUser = await dbService.getById('users', req.user.id);
+    if (currentUser.role !== 'super_admin' && currentUser.role !== 'system_admin' && existing.companyId !== currentUser.companyId) {
+      return res.status(403).json({ message: 'Sem permissão para excluir este usuário.' });
+    }
+
+    const success = await dbService.delete('users', id, req.user.id, req.user.name);
+    if (!success) return res.status(404).json({ message: 'Usuário não encontrado.' });
+    res.json({ message: 'Usuário excluído com sucesso.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Erro ao excluir usuário.' });
+  }
+});
+
 export default router;

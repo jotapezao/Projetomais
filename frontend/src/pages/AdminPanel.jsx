@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Shield, Mail, Zap, Server, Activity, Plus, Database, CheckCircle, X } from 'lucide-react';
+import { Shield, Mail, Zap, Server, Activity, Plus, Database, CheckCircle, X, Users, Edit, Trash2 } from 'lucide-react';
 import client from '../api/client';
 
 export default function AdminPanel() {
@@ -9,6 +9,12 @@ export default function AdminPanel() {
   const [backupTests, setBackupTests] = useState([]);
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Users State
+  const [users, setUsers] = useState([]);
+  const [userEditing, setUserEditing] = useState(null);
+  const [editRole, setEditRole] = useState('');
+  const [editStatus, setEditStatus] = useState('');
 
   // New Rule / Automation Form State
   const [showRuleModal, setShowRuleModal] = useState(false);
@@ -36,18 +42,20 @@ export default function AdminPanel() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [logsRes, emailRes, autoRes, backupRes, emailsRes] = await Promise.all([
+      const [logsRes, emailRes, autoRes, backupRes, emailsRes, usersRes] = await Promise.all([
         client.get('/admin/audit-logs'),
         client.get('/admin/email-settings'),
         client.get('/admin/automations'),
         client.get('/admin/backup/restore-tests'),
-        client.get('/emails/simulated')
+        client.get('/emails/simulated'),
+        client.get('/admin/users').catch(() => ({ data: [] }))
       ]);
       
       setLogs(logsRes.data);
       setAutomations(autoRes.data);
       setBackupTests(backupRes.data);
       setEmails(emailsRes.data || []);
+      setUsers(usersRes.data || []);
       
       if (emailRes.data && emailRes.data.length > 0) {
         const config = emailRes.data[0];
@@ -170,6 +178,36 @@ export default function AdminPanel() {
     }
   };
 
+  const handleEditUser = (u) => {
+    setUserEditing(u);
+    setEditRole(u.role);
+    setEditStatus(u.status);
+  };
+
+  const handleSaveUserEdit = async () => {
+    if (!userEditing) return;
+    try {
+      const res = await client.put(`/admin/users/${userEditing.id}`, {
+        role: editRole,
+        status: editStatus
+      });
+      setUsers(prev => prev.map(u => u.id === userEditing.id ? res.data : u));
+      setUserEditing(null);
+    } catch (error) {
+      console.error("Erro ao salvar alteração do usuário", error);
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm("Deseja realmente excluir este usuário corporativo?")) return;
+    try {
+      await client.delete(`/admin/users/${userId}`);
+      setUsers(prev => prev.filter(u => u.id !== userId));
+    } catch (error) {
+      console.error("Erro ao excluir usuário", error);
+    }
+  };
+
   if (loading) return <div style={{ padding: '2rem' }}>Carregando Administração...</div>;
 
   return (
@@ -224,6 +262,13 @@ export default function AdminPanel() {
             onClick={() => setActiveTab('security')}
           >
             <Shield size={18} /> Permissões (RBAC)
+          </button>
+          <button 
+            className={`btn ${activeTab === 'users' ? 'btn-primary' : 'btn-secondary'}`} 
+            style={{ justifyContent: 'flex-start', padding: '0.75rem 1rem', border: activeTab === 'users' ? 'none' : '' }}
+            onClick={() => setActiveTab('users')}
+          >
+            <Users size={18} /> Usuários
           </button>
         </div>
 
@@ -511,6 +556,73 @@ export default function AdminPanel() {
               </div>
             </div>
           )}
+
+          {activeTab === 'users' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '1.25rem' }}>Gestão de Usuários Corporativos</h2>
+                <button className="btn btn-secondary" onClick={fetchData}>Atualizar</button>
+              </div>
+              <p style={{ color: 'hsl(var(--text-secondary))', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                Gerencie permissões (cargos) e o status das contas de funcionários cadastrados na sua organização.
+              </p>
+              
+              <div className="table-responsive">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid hsl(var(--border))', textAlign: 'left', color: 'hsl(var(--text-secondary))' }}>
+                      <th style={{ padding: '1rem 0.5rem' }}>Nome Completo</th>
+                      <th style={{ padding: '1rem 0.5rem' }}>E-mail</th>
+                      <th style={{ padding: '1rem 0.5rem' }}>Cargo</th>
+                      <th style={{ padding: '1rem 0.5rem' }}>Status</th>
+                      <th style={{ padding: '1rem 0.5rem' }}>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map(u => (
+                      <tr key={u.id} style={{ borderBottom: '1px solid hsla(var(--border), 0.5)' }}>
+                        <td style={{ padding: '1rem 0.5rem', fontWeight: '500' }}>{u.name} {u.lastName}</td>
+                        <td style={{ padding: '1rem 0.5rem', color: 'hsl(var(--text-secondary))' }}>{u.email}</td>
+                        <td style={{ padding: '1rem 0.5rem' }}>
+                          <span className="badge badge-info" style={{ textTransform: 'capitalize' }}>
+                            {u.role?.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1rem 0.5rem' }}>
+                          <span className={`badge ${u.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
+                            {u.status === 'active' ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1rem 0.5rem' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '0.25rem 0.5rem', border: 'none', background: 'transparent' }}
+                              onClick={() => handleEditUser(u)}
+                            >
+                              <Edit size={16} color="hsl(var(--accent-primary))" />
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '0.25rem 0.5rem', border: 'none', background: 'transparent' }}
+                              onClick={() => handleDeleteUser(u.id)}
+                            >
+                              <Trash2 size={16} color="hsl(var(--danger))" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {users.length === 0 && (
+                      <tr>
+                        <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'hsl(var(--text-muted))' }}>Nenhum usuário encontrado.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
           
         </div>
       </div>
@@ -572,6 +684,47 @@ export default function AdminPanel() {
                 <button type="submit" className="btn btn-primary">Criar Regra</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* EDIT USER MODAL */}
+      {userEditing && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '450px', padding: '2rem', position: 'relative' }}>
+            <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }} onClick={() => setUserEditing(null)}>
+              <X size={20} />
+            </button>
+            <h2 style={{ marginBottom: '1.5rem' }}>Editar Usuário Corporativo</h2>
+            
+            <div style={{ marginBottom: '1.5rem' }}>
+              <strong style={{ display: 'block', fontSize: '1rem', color: '#fff' }}>{userEditing.name} {userEditing.lastName}</strong>
+              <span style={{ fontSize: '0.85rem', color: 'hsl(var(--text-secondary))' }}>{userEditing.email}</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="input-group">
+                <label className="input-label">Cargo / Permissões</label>
+                <select className="input-field" value={editRole} onChange={e => setEditRole(e.target.value)}>
+                  <option value="member">Membro</option>
+                  <option value="channel_admin">Channel Admin</option>
+                  <option value="team_admin">Team Admin</option>
+                  <option value="system_admin">System Admin</option>
+                </select>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Status da Conta</label>
+                <select className="input-field" value={editStatus} onChange={e => setEditStatus(e.target.value)}>
+                  <option value="active">🟢 Ativo</option>
+                  <option value="inactive">🔴 Inativo (Bloqueado)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setUserEditing(null)}>Cancelar</button>
+                <button type="button" className="btn btn-primary" onClick={handleSaveUserEdit}>Salvar Alterações</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

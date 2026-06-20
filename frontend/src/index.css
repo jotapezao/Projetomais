@@ -278,3 +278,198 @@ a:hover {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.6; transform: scale(1.05); }
 }
+
+/* ==========================================================================
+   DYNAMIC THEME ACCENTS (PREMIUM PERSOMALIZATION)
+   ========================================================================== */
+:root, :root[data-theme="indigo"] {
+  --accent-primary: 252 87% 67%; /* Violet Purple */
+  --accent-primary-hover: 252 87% 75%;
+}
+
+:root[data-theme="blue"] {
+  --accent-primary: 217 91% 60%; /* Electric Blue */
+  --accent-primary-hover: 217 91% 70%;
+}
+
+:root[data-theme="emerald"] {
+  --accent-primary: 142 71% 45%; /* Emerald Green */
+  --accent-primary-hover: 142 71% 55%;
+}
+
+:root[data-theme="orange"] {
+  --accent-primary: 24 95% 53%; /* Sunset Orange */
+  --accent-primary-hover: 24 95% 63%;
+}
+
+/* Hover effects & neon glow highlights */
+.glass-card:hover {
+  transform: translateY(-4px);
+  border-color: hsla(var(--accent-primary), 0.4);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7), 0 0 15px -3px hsla(var(--accent-primary), 0.2);
+}
+
+.glow-btn {
+  position: relative;
+  overflow: hidden;
+}
+.glow-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 15px hsla(var(--accent-primary), 0.5);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.glow-btn:hover::after {
+  opacity: 1;
+}
+
+/* Notifications Dropdown Bubble */
+.notification-dropdown {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 100;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.theme-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+}
+.theme-dot.active {
+  border-color: #fff;
+  transform: scale(1.2);
+}
+
+.login-card {
+  grid-template-columns: 1fr 1fr;
+}
+.login-form-container {
+  border-left: 1px solid hsl(var(--border));
+}
+
+/* ==========================================================================
+   RESPONSIVE LAYOUT & MOBILE ADAPTABILITY
+   ========================================================================== */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 998;
+}
+
+.hamburger-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-right: 0.75rem;
+}
+
+/* Table scroll wrapper to prevent UI breakage */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1.5rem;
+}
+
+/* Scrollbar adjustment for tables */
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 999;
+    transform: translateX(-100%);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.8);
+    width: 270px;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+  }
+
+  .hamburger-btn {
+    display: block;
+  }
+
+  .topbar {
+    padding: 0 1rem;
+    height: 56px;
+    justify-content: flex-start;
+  }
+  
+  .topbar > div:first-child {
+    display: flex;
+    align-items: center;
+  }
+
+  .topbar > div:last-child {
+    margin-left: auto;
+  }
+
+  .page-container {
+    padding: 1rem;
+  }
+
+  /* Stack login columns */
+  .login-card {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .login-branding {
+    padding: 2.5rem 1.5rem !important;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  
+  .login-form-container {
+    padding: 2.5rem 1.5rem !important;
+    border-left: none !important;
+  }
+
+  /* Grid metrics stacks */
+  div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Flex components wrapping for mobile */
+  div[style*="flex-wrap: wrap"] {
+    gap: 0.75rem !important;
+  }
+  
+  /* Modal responsive constraints */
+  .glass-card[style*="width: 100%"] {
+    padding: 1.25rem !important;
+    max-height: 95vh;
+    overflow-y: auto;
+  }
+}
+

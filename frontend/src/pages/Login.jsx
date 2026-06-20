@@ -77,18 +77,17 @@ export default function Login({ onLogin }) {
       background: 'linear-gradient(135deg, hsl(222, 47%, 8%) 0%, hsl(252, 87%, 15%) 100%)',
       padding: '2rem'
     }}>
-      <div className="glass-panel animate-fade-in" style={{
+      <div className="glass-panel animate-fade-in login-card" style={{
         maxWidth: '1000px',
         width: '100%',
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
         gap: '0',
         overflow: 'hidden',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
       }}>
         
         {/* Left Side - Branding */}
-        <div style={{
+        <div className="login-branding" style={{
           padding: '4rem 3rem',
           background: 'linear-gradient(145deg, hsla(var(--accent-primary), 0.2), transparent)',
           display: 'flex',
@@ -134,13 +133,12 @@ export default function Login({ onLogin }) {
         </div>
 
         {/* Right Side - Form */}
-        <div style={{
+        <div className="login-form-container" style={{
           padding: '4rem 3rem',
           background: 'hsl(var(--bg-card))',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
-          borderLeft: '1px solid hsl(var(--border))'
+          justifyContent: 'center'
         }}>
           
           {isRegistering ? (
