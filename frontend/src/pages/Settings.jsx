@@ -42,6 +42,7 @@ export default function Settings() {
   const [slaMediumHours, setSlaMediumHours] = useState(24);
   const [slaHighHours, setSlaHighHours] = useState(12);
   const [slaCriticalHours, setSlaCriticalHours] = useState(4);
+  const [geminiApiKey, setGeminiApiKey] = useState('');
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -66,6 +67,7 @@ export default function Settings() {
           setSlaMediumHours(d.slaMediumHours ?? 24);
           setSlaHighHours(d.slaHighHours ?? 12);
           setSlaCriticalHours(d.slaCriticalHours ?? 4);
+          setGeminiApiKey(d.geminiApiKey ?? '');
         }
       } catch (err) {
         console.error("Erro ao carregar configurações", err);
@@ -101,7 +103,8 @@ export default function Settings() {
       slaLowHours: parseInt(slaLowHours),
       slaMediumHours: parseInt(slaMediumHours),
       slaHighHours: parseInt(slaHighHours),
-      slaCriticalHours: parseInt(slaCriticalHours)
+      slaCriticalHours: parseInt(slaCriticalHours),
+      geminiApiKey
     };
 
     try {
@@ -351,6 +354,24 @@ export default function Settings() {
                 <p style={{ fontSize: '0.78rem', color: 'hsl(var(--text-muted))', margin: 0 }}>
                   Nota: Usuários que se cadastram automaticamente são designados por padrão como membros e restringidos ao domínio institucional @modaverao.com.br.
                 </p>
+
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1.25rem', marginTop: '1rem' }}>
+                  <h4 style={{ fontSize: '0.9rem', color: '#fff', marginBottom: '0.75rem', fontWeight: 600 }}>Integração com Google Gemini AI</h4>
+                  <div className="input-group">
+                    <label className="input-label">Chave de API do Gemini (GEMINI_API_KEY)</label>
+                    <input 
+                      type="password" 
+                      className="input-field" 
+                      placeholder="Cole sua chave de API aqui (AIzaSy...)" 
+                      value={geminiApiKey} 
+                      onChange={e => setGeminiApiKey(e.target.value)} 
+                      disabled={!isAdmin} 
+                    />
+                    <p style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>
+                      Insira sua chave de API do Google AI Studio para ativar as respostas de IA generativa em tempo real com leitura da base de dados e chamados. Se deixada em branco, o sistema usará as regras locais de simulação.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
