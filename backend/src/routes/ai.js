@@ -116,12 +116,48 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
   }
 
   // 2. Fallback de regras locais (Heurísticas locais humanizadas sem chave de API)
-  const cleanMsg = message.toLowerCase();
+  const cleanMsg = message.toLowerCase().trim();
   let reply = '';
   let actions = [];
 
   try {
-    // 1. Ask for ticket summaries
+    // A. Filtrar inputs muito curtos ou ruídos (ex: "d", "f", "x", "ok")
+    if (cleanMsg.length <= 2) {
+      reply = `Oi! Estou por aqui. Como posso te apoiar hoje? 😊 (Se precisar de ajuda com algo específico, pode escrever detalhadamente!)`;
+      return res.json({ reply, actions });
+    }
+
+    // B. Chitchat / Pequenas interações sociais humanas
+    if (cleanMsg === 'oi' || cleanMsg === 'ola' || cleanMsg === 'olá' || cleanMsg === 'bom dia' || cleanMsg === 'boa tarde' || cleanMsg === 'boa noite') {
+      reply = `Olá, ${req.user.name || 'colaborador'}! Tudo bem com você? 😊 Eu sou o ProMais AI, seu assistente pessoal de suporte.\n\nComo posso te ajudar hoje? Posso te ajudar a consultar seus chamados, tirar dúvidas sobre nossos manuais de TI ou até abrir um chamado novo se for preciso!`;
+      return res.json({ reply, actions });
+    }
+    
+    if (cleanMsg.includes('como voce esta') || cleanMsg.includes('como vai') || cleanMsg.includes('tudo bem') || cleanMsg.includes('tudo certo')) {
+      reply = `Estou ótimo, muito obrigado por perguntar! 😊 Super animado para te ajudar por aqui hoje. E você, como está? O que podemos resolver juntos hoje?`;
+      return res.json({ reply, actions });
+    }
+
+    if (cleanMsg.includes('quem e voce') || cleanMsg.includes('o que e voce') || cleanMsg.includes('quem voce e') || cleanMsg.includes('o que voce e') || cleanMsg.includes('o que é voce')) {
+      reply = `Eu sou o **ProMais AI**, seu atendente e copiloto de suporte técnico oficial aqui na Lojas Moda Verão! 🤖\n\nFui desenvolvido para te ajudar a encontrar soluções nos nossos manuais de TI, ver o andamento de chamados antigos ou registrar novas solicitações no sistema de forma muito rápida.`;
+      return res.json({ reply, actions });
+    }
+
+    if (cleanMsg.includes('obrigado') || cleanMsg.includes('obrigada') || cleanMsg.includes('valeu') || cleanMsg.includes('perfeito') || cleanMsg.includes('entendido') || cleanMsg.includes('entendi')) {
+      reply = `Imagina! Fico feliz em poder ajudar. Se surgir qualquer outra dúvida ou problema, pode me chamar aqui de novo. Tenha um ótimo trabalho! 👍`;
+      return res.json({ reply, actions });
+    }
+
+    // C. Dúvidas gerais de ajuda (sem termo específico)
+    if (cleanMsg === 'ajuda' || cleanMsg === 'quero ajuda' || cleanMsg === 'me ajuda' || cleanMsg === 'help' || cleanMsg === 'preciso de ajuda') {
+      reply = `Com certeza! Estou aqui para te ajudar. 😊\n\nO que está acontecendo? Me conta um pouco do problema ou escolha uma das opções abaixo:\n` +
+        `• Se for uma dúvida de TI, me diga o assunto (ex: *"como configurar VPN"*, *"impressora travou"*).\n` +
+        `• Se quiser saber de um chamado, digite: *"resumir chamado tkt-1"*.\n` +
+        `• Se precisar que eu registre uma solicitação, escreva: *"abrir chamado"*.`;
+      return res.json({ reply, actions });
+    }
+
+    // D. Chamados (Resumos)
     if (cleanMsg.includes('resumir chamado') || cleanMsg.includes('resumo do chamado') || cleanMsg.includes('resuma')) {
       const tickets = await dbService.getCollection('tickets');
       const ticketMatch = cleanMsg.match(/(tkt-\d+)/) || cleanMsg.match(/#?(\d+)/);
@@ -195,8 +231,8 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
         reply = "Dei uma busca na lista de operadores mas infelizmente todos parecem indisponíveis no momento. 😔";
       }
     }
-    // 5. Search Help/Knowledge articles
-    else if (cleanMsg.includes('ajuda') || cleanMsg.includes('documento') || cleanMsg.includes('como') || cleanMsg.includes('conhecimento') || cleanMsg.includes('vpn') || cleanMsg.includes('impressora') || cleanMsg.includes('zebra') || cleanMsg.includes('senha') || cleanMsg.includes('pdv')) {
+    // 5. Search Help/Knowledge articles (Apenas se tiver termos técnicos reais da base de conhecimento)
+    else if (cleanMsg.includes('vpn') || cleanMsg.includes('impressora') || cleanMsg.includes('zebra') || cleanMsg.includes('senha') || cleanMsg.includes('pdv') || cleanMsg.includes('caixa') || cleanMsg.includes('rede') || cleanMsg.includes('outlook') || cleanMsg.includes('teams') || cleanMsg.includes('internet') || cleanMsg.includes('cabo')) {
       const articles = await dbService.getCollection('knowledge');
       const keywords = cleanMsg.split(' ').filter(w => w.length > 3);
       const matches = articles.filter(art => 
@@ -208,12 +244,8 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
           matches.slice(0, 2).map(art => `📖 **${art.title}** (${art.category}):\n${art.content.slice(0, 350)}...`).join('\n\n') +
           `\n\nCaso você siga os passos e a falha persista, ou se preferir que eu registre um chamado para a equipe de TI dar uma olhada de perto, basta digitar **'abrir chamado'** aqui no chat! 🛠️`;
       } else {
-        reply = `Olá! Sou o ProMais AI, seu atendente virtual de suporte. Vi que perguntou sobre ajuda, mas não encontrei um manual específico.\n\n` +
-          `Porém, você pode me pedir tarefas específicas como:\n` +
-          `• *"Como configuro a VPN?"* (vou pesquisar nos manuais de ajuda)\n` +
-          `• *"Resumir chamado tkt-1"* (resumo o andamento do ticket)\n` +
-          `• *"Prever SLA do chamado tkt-1"* (calculo chances de atraso)\n` +
-          `• *"Recomendar um técnico para o caso"* (indico quem está livre)`;
+        reply = `Vi que você citou um termo técnico, mas infelizmente não encontrei nenhum manual cadastrado sobre isso na minha base de dados. 😔\n\n` +
+          `Quer que eu registre um chamado de suporte técnico para que a equipe de TI investigue isso? É só escrever **"abrir chamado"**!`;
       }
     }
     // 6. Action-based ticket creation fallback
@@ -234,12 +266,7 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
     // 7. Generic greeting / helper instructions
     else {
       reply = `Olá, **${req.user.name || 'colaborador'}**! Tudo bem com você? 😊 Eu sou o ProMais AI, seu assistente pessoal de suporte e operações aqui na Lojas Moda Verão.\n\n` +
-        `Estou aqui para deixar sua rotina mais fácil! Você pode conversar comigo de forma natural, e posso te ajudar em coisas como:\n` +
-        `• 🔎 **Buscar soluções nos manuais** (ex: *"Como configuro a VPN?"* ou *"Impressora Zebra piscando"*)\n` +
-        `• 📊 **Acompanhar chamados** (ex: *"Resumir chamado tkt-1"* ou *"Qual o risco de atraso do chamado?"*)\n` +
-        `• ⚙️ **Registrar novos problemas** (ex: *"Preciso abrir um chamado para conserto"*)\n` +
-        `• 👥 **Otimizar processos** (ex: *"Quem está livre para assumir chamados?"*)\n\n` +
-        `Como posso te ajudar hoje? Pode falar livremente comigo! 💬`;
+        `Como posso te ajudar hoje? Pode falar livremente comigo! Estou pronto para buscar soluções em nossos manuais, acompanhar chamados ou abrir uma nova solicitação caso precise. 💬`;
     }
 
     res.json({ reply, actions });
