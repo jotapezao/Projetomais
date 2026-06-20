@@ -141,13 +141,47 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
   try {
     // A. Filtrar inputs muito curtos ou ruídos (ex: "d", "f", "x", "ok")
     if (cleanMsg.length <= 2) {
-      reply = `Oi! Estou por aqui. Como posso te apoiar hoje? 😊 (Se precisar de ajuda com algo específico, pode escrever detalhadamente!)`;
-      return res.json({ reply, actions });
-    }
-
-    // Obter última resposta do assistente para controle de estado
+      reply = `Oi! Estou por aqui. Como posso te apoiar hoje? 😊 (Se precisar de a    // Obter última resposta do assistente para controle de estado
     const lastAIReply = [...history].reverse().find(h => h.role === 'assistant' || h.role === 'model' || h.sender === 'ai')?.content || '';
     const lastAIReplyLower = lastAIReply.toLowerCase();
+
+    // Extrator de slots baseado em todo o histórico da conversa + mensagem atual
+    let device = '';
+    let brand = '';
+    let symptom = '';
+
+    const scanText = (text) => {
+      const lower = text.toLowerCase();
+      
+      // Detecção de Dispositivo
+      if (lower.includes('impressora') || lower.includes('imprimir') || lower.includes('impressão') || lower.includes('etiqueta') || lower.includes('toner') || lower.includes('cartucho')) device = 'impressora';
+      else if (lower.includes('computador') || lower.includes('pc') || lower.includes('notebook') || lower.includes('máquina') || lower.includes('maquina') || lower.includes('desktop') || lower.includes('tela') || lower.includes('gabinete') || lower.includes('monitor')) device = 'computador';
+      else if (lower.includes('vpn') || lower.includes('forticlient') || lower.includes('conexão') || lower.includes('conectar') || lower.includes('rede')) device = 'vpn';
+      else if (lower.includes('senha') || lower.includes('login') || lower.includes('usuario') || lower.includes('usuário')) device = 'senha';
+      else if (lower.includes('chamado') || lower.includes('suporte')) device = 'chamado';
+
+      // Detecção de Marca
+      if (lower.includes('zebra') || lower.includes('gc420') || lower.includes('zd220')) brand = 'zebra';
+      else if (lower.includes('epson') || lower.includes('l3150') || lower.includes('l3250') || lower.includes('jato de tinta')) brand = 'epson';
+      else if (lower.includes('hp') || lower.includes('laserjet')) brand = 'hp';
+      else if (lower.includes('canon')) brand = 'canon';
+      else if (lower.includes('fortinet') || lower.includes('forticlient')) brand = 'forticlient';
+
+      // Detecção de Sintoma
+      if (lower.includes('não liga') || lower.includes('desligada') || lower.includes('desligado') || lower.includes('apagada') || lower.includes('apagado') || lower.includes('morto') || lower.includes('morreu') || lower.includes('sem energia') || lower.includes('não acende') || lower.includes('ligar')) symptom = 'desligado';
+      else if (lower.includes('papel') || lower.includes('engolindo') || lower.includes('atolado') || lower.includes('enroscado') || lower.includes('preso') || lower.includes('engoliu') || lower.includes('trancou') || lower.includes('puxando')) symptom = 'papel';
+      else if (lower.includes('vermelho') || lower.includes('piscando') || lower.includes('pisca') || lower.includes('luz vermelha') || lower.includes('led vermelho')) symptom = 'led_vermelho';
+      else if (lower.includes('senha') || lower.includes('credenciais') || lower.includes('expirada') || lower.includes('acesso') || lower.includes('erro de login')) symptom = 'credenciais';
+      else if (lower.includes('98%') || lower.includes('tempo limite') || lower.includes('timeout') || lower.includes('trava') || lower.includes('lentidão') || lower.includes('lento') || lower.includes('caindo') || lower.includes('cai')) symptom = 'conexao_lenta';
+    };
+
+    // Scan history messages
+    for (const msg of history) {
+      const content = msg.content || msg.text || '';
+      scanText(content);
+    }
+    // Scan current message
+    scanText(message);
 
     // B. Chitchat / Pequenas interações sociais humanas
     if (cleanMsg === 'oi' || cleanMsg === 'ola' || cleanMsg === 'olá' || cleanMsg === 'bom dia' || cleanMsg === 'boa tarde' || cleanMsg === 'boa noite') {
@@ -174,151 +208,201 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
       return res.json({ reply, actions });
     }
 
-    // C. Verificações de sessões investigativas locais baseadas em histórico
-    const isZebraSession = cleanMsg.includes('zebra') || cleanMsg.includes('impressora') || 
-                           lastAIReplyLower.includes('piscando em vermelho') || 
-                           lastAIReplyLower.includes('cabo de força') || 
-                           lastAIReplyLower.includes('bobina está bem encaixada') ||
-                           lastAIReplyLower.includes('recalibrar o sensor') ||
-                           lastAIReplyLower.includes('verificar pessoalmente, tudo bem?');
-
-    if (isZebraSession) {
-      if (aiInvestigativeMode) {
-        if (lastAIReplyLower.includes('piscando em vermelho')) {
-          if (cleanMsg.includes('não liga') || cleanMsg.includes('desligada') || cleanMsg.includes('apagada') || cleanMsg.includes('morreu') || cleanMsg.includes('desligou')) {
-            reply = `Entendi. Se ela está completamente apagada, vamos verificar a energia. O cabo de força está bem encaixado atrás dela e na tomada? O botão de liga/desliga traseiro está na posição ligada? Dá uma olhada e me avisa se acendeu algo. 🔌`;
-          } else if (cleanMsg.includes('vermelho') || cleanMsg.includes('piscando') || cleanMsg.includes('pisca')) {
-            reply = `Certo, led vermelho piscando geralmente indica falta de papel ou tampa destravada. Você pode abrir a impressora, verificar se a bobina está bem encaixada, fechar a tampa com firmeza até fazer um 'clique' e tentar de novo? Me diz se mudou a cor do led. 🖨️`;
-          } else {
-            reply = `Entendi. Para eu te dar a instrução correta: ela está com o led vermelho piscando ou está totalmente desligada e sem luz?`;
-          }
-          return res.json({ reply, actions });
-        }
-        
-        if (lastAIReplyLower.includes('cabo de força')) {
-          if (cleanMsg.includes('não') || cleanMsg.includes('desligada') || cleanMsg.includes('apagada') || cleanMsg.includes('continua') || cleanMsg.includes('nada') || cleanMsg.includes('mesmo')) {
-            reply = `Puxa, nesse caso parece ser um problema físico ou de fonte de energia queimada. Vou precisar abrir um chamado para nossa equipe técnica ir até aí verificar pessoalmente, tudo bem? Posso prosseguir com a abertura? ⚙️`;
-          } else {
-            reply = `Que ótimo que ligou! E agora, ela está com o led verde fixo ou piscando em alguma cor?`;
-          }
+    // C. Roteiro Investigativo baseado em slots
+    if (aiInvestigativeMode) {
+      if (device === 'impressora') {
+        if (!brand) {
+          reply = `Entendi, você está com problemas em uma impressora. Qual é a marca e o modelo dela (ex: Zebra, Epson, HP) para eu te passar as orientações corretas? 🖨️`;
           return res.json({ reply, actions });
         }
 
-        if (lastAIReplyLower.includes('bobina está bem encaixada')) {
-          if (cleanMsg.includes('não') || cleanMsg.includes('piscando') || cleanMsg.includes('vermelho') || cleanMsg.includes('continua') || cleanMsg.includes('tem bobina') || cleanMsg.includes('mesma')) {
-            reply = `Certo. Vamos tentar recalibrar o sensor de papel dela. É bem simples: desliga a impressora no botão traseiro. Segure o botão Feed da frente pressionado e, sem soltá-lo, ligue a impressora novamente. Mantenha pressionado até o led piscar duas vezes e solte. Ela deve soltar uma ou duas etiquetas e calibrar. Deu certo? 🏷️`;
-          } else {
-            reply = `Perfeito! O led ficou verde e voltou a imprimir normalmente? Me avisa se precisar de mais algo.`;
-          }
+        if (!symptom) {
+          reply = `Anotei aqui que é uma impressora **${brand.toUpperCase()}**. E o que está acontecendo com ela? Ela não está ligando, está piscando luz vermelha ou engolindo papel?`;
           return res.json({ reply, actions });
         }
 
-        if (lastAIReplyLower.includes('recalibrar o sensor')) {
-          if (cleanMsg.includes('não') || cleanMsg.includes('falhou') || cleanMsg.includes('erro') || cleanMsg.includes('piscando') || cleanMsg.includes('continua') || cleanMsg.includes('mesmo')) {
-            reply = `Entendi. Como a calibração não resolveu, vou abrir um chamado para um técnico ir dar uma olhada e resolver isso para você, ok? Só um minutinho que já vou registrar... ⚙️`;
-            actions = [{
-              type: 'create_ticket',
-              payload: {
-                subject: 'Problema Impressora Zebra - Não imprime / Vermelho piscando',
-                description: `Chamado aberto via copiloto ProMais AI. Usuário relatou problema com impressora Zebra. Passou pelas etapas de verificação de energia, bobina de papel e calibração Feed, mas o led continua piscando vermelho.`,
-                category: 'TI e Infraestrutura',
-                priority: 'media'
+        // Se for Zebra
+        if (brand === 'zebra') {
+          if (symptom === 'desligado') {
+            if (lastAIReplyLower.includes('botão de liga/desliga')) {
+              if (cleanMsg.includes('não') || cleanMsg.includes('apagada') || cleanMsg.includes('nada')) {
+                reply = `Puxa, nesse caso parece ser um problema físico ou de fonte de energia queimada. Vou precisar abrir um chamado para nossa equipe técnica ir até aí verificar pessoalmente, tudo bem? Posso prosseguir com a abertura? ⚙️`;
+              } else {
+                reply = `Que ótimo que ligou! E agora, ela está com o led verde fixo ou piscando em alguma cor?`;
               }
-            }];
-          } else {
-            reply = `Maravilha! Fico feliz que a calibração tenha funcionado e esteja tudo funcionando. Se precisar de mais alguma ajuda, é só me chamar. Bom trabalho! 😊`;
+            } else {
+              reply = `Entendi. Se a Zebra está completamente apagada, o cabo de força está bem encaixado atrás dela e na tomada? O botão de liga/desliga traseiro está na posição ligada? Dá uma olhada e me avisa se acendeu algo. 🔌`;
+            }
+            return res.json({ reply, actions });
           }
-          return res.json({ reply, actions });
-        }
 
-        if (lastAIReplyLower.includes('verificar pessoalmente, tudo bem?')) {
-          if (cleanMsg.includes('sim') || cleanMsg.includes('pode') || cleanMsg.includes('claro') || cleanMsg.includes('ok') || cleanMsg.includes('prosseguir') || cleanMsg.includes('abrir')) {
-            reply = `Combinado! Estou abrindo o chamado de suporte técnico agora mesmo. Só um minutinho... ⚙️`;
-            actions = [{
-              type: 'create_ticket',
-              payload: {
-                subject: 'Problema Impressora Zebra - Apagada / Sem energia',
-                description: `Chamado aberto via copiloto ProMais AI. Usuário relatou que a impressora Zebra está apagada e não liga. Cabos de força e tomadas foram verificados pelo usuário no local.`,
-                category: 'TI e Infraestrutura',
-                priority: 'alta'
+          if (symptom === 'led_vermelho') {
+            if (lastAIReplyLower.includes('bobina está bem encaixada')) {
+              reply = `Certo. Vamos tentar recalibrar o sensor de papel dela. É bem simples: desliga a impressora no botão traseiro. Segure o botão Feed da frente pressionado e, sem soltá-lo, ligue a impressora novamente. Mantenha pressionado até o led piscar duas vezes e solte. Ela deve soltar uma ou duas etiquetas e calibrar. Deu certo? 🏷️`;
+            } else if (lastAIReplyLower.includes('recalibrar o sensor')) {
+              if (cleanMsg.includes('não') || cleanMsg.includes('falhou') || cleanMsg.includes('erro') || cleanMsg.includes('continua')) {
+                reply = `Entendi. Como a calibração não resolveu, vou abrir um chamado para um técnico ir dar uma olhada e resolver isso para você, ok? Só um minutinho que já vou registrar... ⚙️`;
+                actions = [{
+                  type: 'create_ticket',
+                  payload: {
+                    subject: 'Problema Impressora Zebra - Não imprime / Vermelho piscando',
+                    description: `Chamado aberto via copiloto ProMais AI. Usuário relatou problema com impressora Zebra. Passou pelas etapas de verificação de energia, bobina de papel e calibração Feed, mas o led continua piscando vermelho.`,
+                    category: 'TI e Infraestrutura',
+                    priority: 'media'
+                  }
+                }];
+              } else {
+                reply = `Maravilha! Fico feliz que a calibração tenha funcionado e esteja tudo funcionando. Se precisar de mais alguma ajuda, é só me chamar. Bom trabalho! 😊`;
               }
-            }];
-          } else {
-            reply = `Entendido. Cancelei a abertura do chamado. Se mudar de ideia ou quiser tentar outra coisa, estou por aqui!`;
+            } else {
+              reply = `Certo, led vermelho piscando na Zebra geralmente indica falta de papel ou tampa destravada. Você pode abrir a impressora, verificar se a bobina está bem encaixada, fechar a tampa com firmeza até fazer um 'clique' e tentar de novo? Me diz se mudou a cor do led. 🖨️`;
+            }
+            return res.json({ reply, actions });
           }
-          return res.json({ reply, actions });
+
+          if (symptom === 'papel') {
+            reply = `Entendi. Na Zebra, se o papel estiver enroscado, abra a tampa superior pressionando as travas amarelas laterais, remova a bobina puxando com cuidado para não quebrar o sensor e retire o papel preso. Depois reinsira a bobina e feche. Funcionou?`;
+            return res.json({ reply, actions });
+          }
         }
 
-        // Caso inicial
-        reply = `Oi! Vi que você está com problemas na impressora Zebra. Para eu te ajudar a resolver rápido, me conta: ela está ligada e com o led verde aceso, ou está piscando em vermelho? 🖨️`;
-        return res.json({ reply, actions });
-      } else {
-        // Se o modo investigativo estiver desativado, dá a solução direta baseada no manual
-        reply = `Para resolver problemas na impressora Zebra:\n\n1. **Led Vermelho Piscando:** Geralmente indica falta de papel ou tampa destravada. Verifique se a bobina está bem posicionada e feche a tampa firmemente.\n2. **Calibração:** Se continuar piscando, desligue a impressora, segure o botão Feed da frente e ligue-a no botão traseiro mantendo o Feed pressionado até piscar duas vezes.\n3. **Sem Energia:** Verifique as conexões do cabo de força na impressora e na tomada.\n\nSe nada funcionar, digite **'abrir chamado'** para acionar a equipe de TI! 🛠️`;
+        // Se for Epson
+        if (brand === 'epson') {
+          if (symptom === 'papel') {
+            if (lastAIReplyLower.includes('conseguiu retirar tudo')) {
+              if (cleanMsg.includes('não') || cleanMsg.includes('preso') || cleanMsg.includes('continua') || cleanMsg.includes('rasgou')) {
+                reply = `Puxa, nesse caso o papel pode ter ficado preso em roletes internos de difícil acesso. Vou abrir um chamado para a nossa equipe técnica ir remover e fazer a limpeza interna para você, está bem? ⚙️`;
+                actions = [{
+                  type: 'create_ticket',
+                  payload: {
+                    subject: 'Impressora Epson - Papel Enroscado / Atolamento',
+                    description: `Chamado aberto automaticamente via copiloto ProMais AI. Impressora Epson com papel enroscado/atolamento de papel que o usuário não conseguiu remover manualmente.`,
+                    category: 'TI e Infraestrutura',
+                    priority: 'media'
+                  }
+                }];
+              } else {
+                reply = `Ótimo! Agora ligue a impressora de volta e tente fazer uma impressão de teste. Me avisa se funcionou ou se deu erro novamente. 📄`;
+              }
+            } else {
+              reply = `Papel enroscado na Epson é clássico. Vamos resolver passo a passo:\n1. Desligue a impressora da tomada para evitar puxar as engrenagens motorizadas com força.\n2. Abra a tampa de acesso e tente puxar o papel com as duas mãos, de forma lenta, na direção de saída natural. Nunca puxe rápido para não rasgar.\n3. Verifique se sobrou algum pedaço lá dentro.\n\nConseguiu retirar tudo ou o papel continua preso?`;
+            }
+            return res.json({ reply, actions });
+          }
+
+          if (symptom === 'desligado') {
+            reply = `Para a Epson apagada, verifique se o cabo de força está bem conectado atrás dela e na tomada. Se ela estiver ligada em um estabilizador ou filtro de linha, confirme se ele está ligado. Se tudo estiver conectado e não acender nenhuma luz ao pressionar o botão Power, me avise para abrirmos um chamado.`;
+            return res.json({ reply, actions });
+          }
+        }
+
+        // Se for outra marca
+        reply = `Dicas para impressora **${brand.toUpperCase()}** com problema de **${symptom}**:\n1. Desligue o aparelho e verifique os cabos.\n2. Abra as tampas para verificar se há obstruções ou papel preso.\n3. Se persistir, digite **'abrir chamado'** para acionar o suporte de TI. 🛠️`;
         return res.json({ reply, actions });
       }
-    }
 
-    const isVPNSession = cleanMsg.includes('vpn') || cleanMsg.includes('forticlient') || cleanMsg.includes('conexão') ||
-                         lastAIReplyLower.includes('dificuldades para conectar na vpn') ||
-                         lastAIReplyLower.includes('reiniciar seu roteador') ||
-                         lastAIReplyLower.includes('senha do domínio');
+      if (device === 'computador') {
+        if (!symptom) {
+          reply = `Entendi, o problema é no computador. O que está acontecendo com ele? Ele não liga, está travado na tela de login, ou está muito lento?`;
+          return res.json({ reply, actions });
+        }
 
-    if (isVPNSession) {
-      if (aiInvestigativeMode) {
-        if (lastAIReplyLower.includes('dificuldades para conectar na vpn')) {
-          if (cleanMsg.includes('senha') || cleanMsg.includes('credenciais') || cleanMsg.includes('login') || cleanMsg.includes('erro de login') || cleanMsg.includes('usuario')) {
+        if (symptom === 'desligado') {
+          if (lastAIReplyLower.includes('cooler/ventoinha')) {
+            if (cleanMsg.includes('não') || cleanMsg.includes('nada') || cleanMsg.includes('morto') || cleanMsg.includes('apagado')) {
+              reply = `Entendi. Dá uma olhada se o cabo de força atrás do gabinete (ou o carregador, se for notebook) está bem conectado na tomada e no aparelho. Se for filtro de linha/estabilizador, confirme se a chave dele está acesa. Tentou reconectar e testar?`;
+            } else {
+              reply = `Ah, se acendeu luzes ou fez barulho de cooler mas não dá imagem na tela, tente desligar o monitor e ligar de novo, ou verifique se o cabo de vídeo (HDMI/VGA) está firme. Deu sinal? 🖥️`;
+            }
+            return res.json({ reply, actions });
+          }
+
+          if (lastAIReplyLower.includes('chave dele está acesa')) {
+            if (cleanMsg.includes('não') || cleanMsg.includes('continua') || cleanMsg.includes('nada') || cleanMsg.includes('mesmo')) {
+              reply = `Certo. Como o computador continua completamente morto após checar a tomada e os cabos, pode ser uma falha de hardware na fonte ou placa-mãe. Vou abrir um chamado para a TI ir até sua mesa analisar, tudo bem? ⚙️`;
+            } else {
+              reply = `Que ótimo que funcionou! Se precisar de mais alguma coisa, me avise.`;
+            }
+            return res.json({ reply, actions });
+          }
+
+          if (lastAIReplyLower.includes('verificar pessoalmente, tudo bem?')) {
+            if (cleanMsg.includes('sim') || cleanMsg.includes('pode') || cleanMsg.includes('prosseguir') || cleanMsg.includes('ok') || cleanMsg.includes('abrir')) {
+              reply = `Combinado! Estou registrando o chamado de suporte agora mesmo para verificar a fonte/computador que não liga. ⚙️`;
+              actions = [{
+                type: 'create_ticket',
+                payload: {
+                  subject: 'Computador não liga / Completamente morto',
+                  description: `Chamado registrado automaticamente via Copiloto ProMais AI. Usuário relatou que o computador não liga. Foi verificado que está sem energia (sem cooler/luzes) e os cabos de força foram testados pelo usuário.`,
+                  category: 'TI e Infraestrutura',
+                  priority: 'alta'
+                }
+              }];
+            } else {
+              reply = `Entendido. Cancelei a abertura do chamado. Se mudar de ideia, me fale.`;
+            }
+            return res.json({ reply, actions });
+          }
+
+          reply = `Vamos verificar. Quando você aperta o botão de ligar do computador, acende alguma luz ou faz algum barulho de cooler/ventoinha, ou ele está completamente apagado e silencioso?`;
+          return res.json({ reply, actions });
+        }
+
+        if (symptom === 'conexao_lenta') {
+          reply = `Computador lento geralmente é excesso de processos ou falta de memória. Experimente reiniciar o sistema e fechar abas desnecessárias no navegador. Se persistir, podemos abrir um chamado para avaliação de hardware. 💻`;
+          return res.json({ reply, actions });
+        }
+      }
+
+      if (device === 'vpn') {
+        if (!symptom) {
+          reply = `Entendi, você está com dificuldades para conectar na VPN. Você está tentando acessar de casa ou de uma rede externa, e qual erro aparece na tela (ex: erro de credenciais ou tempo limite de conexão)? 🌐`;
+          return res.json({ reply, actions });
+        }
+
+        if (symptom === 'credenciais') {
+          if (lastAIReplyLower.includes('senha do domínio')) {
+            if (cleanMsg.includes('chamado') || cleanMsg.includes('abre') || cleanMsg.includes('sim') || cleanMsg.includes('quero') || cleanMsg.includes('pode')) {
+              reply = `Perfeito, estou abrindo um chamado para reset de senha do domínio no Active Directory (AD) para você. A equipe de suporte entrará em contato em breve. ⚙️`;
+              actions = [{
+                type: 'create_ticket',
+                payload: {
+                  subject: 'Reset de Senha AD / VPN',
+                  description: `Chamado aberto via copiloto ProMais AI. Solicitação de reset de senha do usuário para acesso VPN / domínio.`,
+                  category: 'TI e Infraestrutura',
+                  priority: 'media'
+                }
+              }];
+            } else {
+              reply = `Para alterar sua senha manualmente, você pode pressionar Ctrl+Alt+Del no computador da rede interna ou acessar o portal de self-service da empresa. Se preferir o chamado, é só me pedir.`;
+            }
+          } else {
             reply = `Se for erro de credenciais ou senha expirada, o ideal é resetar a senha do domínio. Você lembra se trocou sua senha recentemente? Posso te guiar para alterar ou prefere que eu abra um chamado de reset de senha? 🔒`;
-          } else if (cleanMsg.includes('tempo limite') || cleanMsg.includes('98') || cleanMsg.includes('carrega') || cleanMsg.includes('trava') || cleanMsg.includes('internet') || cleanMsg.includes('casa')) {
+          }
+          return res.json({ reply, actions });
+        }
+
+        if (symptom === 'conexao_lenta') {
+          if (lastAIReplyLower.includes('reiniciar seu roteador')) {
+            if (cleanMsg.includes('não') || cleanMsg.includes('continua') || cleanMsg.includes('erro') || cleanMsg.includes('mesmo erro') || cleanMsg.includes('falhou')) {
+              reply = `Entendi. Nesse caso, pode ser necessário reinstalar o cliente da VPN ou reconfigurar seu usuário na rede. Vou abrir um chamado para nossa equipe de redes analisar e te ligar para resolver, tudo bem? ⚙️`;
+              actions = [{
+                type: 'create_ticket',
+                payload: {
+                  subject: 'Problema Conexão VPN - Tempo Limite / 98% erro',
+                  description: `Chamado aberto via copiloto ProMais AI. Usuário relatou falha na VPN. Tentou reiniciar roteador de internet, mas o erro de conexão/tempo limite persiste no FortiClient.`,
+                  category: 'TI e Infraestrutura',
+                  priority: 'media'
+                }
+              }];
+            } else {
+              reply = `Maravilha! VPN conectada com sucesso. Se precisar de mais alguma ajuda, é só gritar por aqui. Tenha um ótimo dia de trabalho! 💻`;
+            }
+          } else {
             reply = `Certo, quando dá tempo limite de conexão ou para em 98%, geralmente é oscilação da sua internet local ou o antivírus bloqueando. Você poderia tentar reiniciar seu roteador de internet e desativar o FortiClient e abrir de novo? Me diz se deu certo. 🌐`;
-          } else {
-            reply = `Entendi. Para eu te direcionar melhor, qual erro ou mensagem aparece na tela do FortiClient ao tentar conectar?`;
           }
           return res.json({ reply, actions });
         }
-
-        if (lastAIReplyLower.includes('reiniciar seu roteador')) {
-          if (cleanMsg.includes('não') || cleanMsg.includes('continua') || cleanMsg.includes('erro') || cleanMsg.includes('mesmo erro') || cleanMsg.includes('falhou')) {
-            reply = `Entendi. Nesse caso, pode ser necessário reinstalar o cliente da VPN ou reconfigurar seu usuário na rede. Vou abrir um chamado para nossa equipe de redes analisar e te ligar para resolver, tudo bem? ⚙️`;
-            actions = [{
-              type: 'create_ticket',
-              payload: {
-                subject: 'Problema Conexão VPN - Tempo Limite / 98% erro',
-                description: `Chamado aberto via copiloto ProMais AI. Usuário relatou falha na VPN. Tentou reiniciar roteador de internet, mas o erro de conexão/tempo limite persiste no FortiClient.`,
-                category: 'TI e Infraestrutura',
-                priority: 'media'
-              }
-            }];
-          } else {
-            reply = `Maravilha! VPN conectada com sucesso. Se precisar de mais alguma ajuda, é só gritar por aqui. Tenha um ótimo dia de trabalho! 💻`;
-          }
-          return res.json({ reply, actions });
-        }
-
-        if (lastAIReplyLower.includes('senha do domínio')) {
-          if (cleanMsg.includes('chamado') || cleanMsg.includes('abre') || cleanMsg.includes('sim') || cleanMsg.includes('quero') || cleanMsg.includes('pode')) {
-            reply = `Perfeito, estou abrindo um chamado para reset de senha do domínio no Active Directory (AD) para você. A equipe de suporte entrará em contato em breve. ⚙️`;
-            actions = [{
-              type: 'create_ticket',
-              payload: {
-                subject: 'Reset de Senha AD / VPN',
-                description: `Chamado aberto via copiloto ProMais AI. Solicitação de reset de senha do usuário para acesso VPN / domínio.`,
-                category: 'TI e Infraestrutura',
-                priority: 'media'
-              }
-            }];
-          } else {
-            reply = `Para alterar sua senha manualmente, você pode pressionar Ctrl+Alt+Del no computador da rede interna ou acessar o portal de self-service da empresa. Se preferir o chamado, é só me pedir.`;
-          }
-          return res.json({ reply, actions });
-        }
-
-        // Caso inicial
-        reply = `Entendi, você está com dificuldades para conectar na VPN. Você está tentando acessar de casa ou de uma rede externa, e qual erro aparece na tela (ex: erro de credenciais ou tempo limite de conexão)? 🌐`;
-        return res.json({ reply, actions });
-      } else {
-        reply = `Para solucionar problemas na VPN FortiClient:\n\n1. **Erro de Credenciais:** Certifique-se de que sua senha não expirou. Caso precise de reset, digite **'abrir chamado'**.\n2. **Erro 98% / Tempo Limite:** Geralmente é instabilidade na sua internet residencial ou bloqueio do antivírus local. Reinicie seu roteador e tente novamente.\n3. **Configuração de Gateway:** Verifique se o endereço do gateway no FortiClient está correto.\n\nSe precisar que nossa equipe atue, peça para **'abrir chamado'**! 🌐`;
-        return res.json({ reply, actions });
       }
     }
 
