@@ -6,9 +6,9 @@
 :root, :root[data-color-scheme="dark"] {
   /* Hex equivalents for dark saas dashboard */
   --bg-primary: #06142D;
-  --bg-secondary: #0b1c37;
-  --bg-card: #0d1e3d;
-  --bg-glass: rgba(15, 25, 50, 0.65);
+  --bg-secondary: rgba(11, 28, 55, 0.45);
+  --bg-card: rgba(13, 30, 61, 0.35);
+  --bg-glass: rgba(15, 25, 50, 0.45);
   
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.75);
@@ -42,9 +42,9 @@
 
 :root[data-color-scheme="light"] {
   --bg-primary: #f4f6fa;
-  --bg-secondary: #ebedf2;
-  --bg-card: #ffffff;
-  --bg-glass: rgba(255, 255, 255, 0.75);
+  --bg-secondary: rgba(235, 237, 242, 0.5);
+  --bg-card: rgba(255, 255, 255, 0.65);
+  --bg-glass: rgba(255, 255, 255, 0.55);
   
   --text-primary: #0f172a;
   --text-secondary: #334155;
@@ -99,6 +99,9 @@
 body {
   font-family: 'Inter', sans-serif !important;
   background-color: var(--bg-primary);
+  background-image: radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
+                    radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.06) 0%, transparent 45%);
+  background-attachment: fixed;
   color: var(--text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -165,15 +168,18 @@ a:hover {
 }
 
 .glass-card {
-  background: linear-gradient(135deg, var(--bg-card), var(--bg-secondary));
+  background: rgba(15, 25, 50, 0.35);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .glass-card:hover {
   transform: translateY(-4px);
+  background: rgba(15, 25, 50, 0.5);
   border-color: hsla(var(--accent-primary-val), 0.45);
   box-shadow: var(--shadow-lg), 0 0 20px -3px hsla(var(--accent-primary-val), 0.25);
 }

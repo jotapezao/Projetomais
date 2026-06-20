@@ -7,6 +7,7 @@ import {
   MessageSquare, 
   BookOpen, 
   Settings, 
+  Sliders,
   LogOut, 
   Bell,
   Menu,
@@ -31,6 +32,7 @@ import Chat from './pages/Chat';
 import AdminPanel from './pages/AdminPanel';
 import Login from './pages/Login';
 import KnowledgeBase from './pages/KnowledgeBase';
+import SettingsPage from './pages/Settings';
 
 const ProtectedRoute = ({ children, user }) => {
   if (!user) return <Navigate to="/login" replace />;
@@ -47,10 +49,11 @@ const Sidebar = ({ user, onLogout, mobileOpen, onClose }) => {
     { name: 'Chamados', path: '/chamados', icon: Ticket },
     { name: 'Chat', path: '/chat', icon: MessageSquare },
     { name: 'Base de Conhecimento', path: '/conhecimento', icon: BookOpen },
+    { name: 'Configurações', path: '/settings', icon: Settings }
   ];
 
-  if (user && (user.role === 'super_admin' || user.role === 'admin')) {
-    navItems.push({ name: 'Administração', path: '/admin', icon: Settings });
+  if (user && (user.role === 'super_admin' || user.role === 'admin' || user.role === 'system_admin' || user.role === 'team_admin')) {
+    navItems.push({ name: 'Administração', path: '/admin', icon: Sliders });
   }
 
   return (
@@ -61,7 +64,7 @@ const Sidebar = ({ user, onLogout, mobileOpen, onClose }) => {
             M
           </div>
           <div>
-            <h2 style={{ fontSize: '1.1rem', margin: 0, fontWeight: '700' }}>Mais Tecnologia</h2>
+            <h2 style={{ fontSize: '1.1rem', margin: 0, fontWeight: '700' }}>{user ? (user.systemName || 'Mais Tecnologia') : 'Mais Tecnologia'}</h2>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gestão Integrada</span>
           </div>
         </div>
@@ -427,6 +430,11 @@ function App() {
   const [colorScheme, setColorScheme] = useState(() => localStorage.getItem('colorScheme') || 'dark');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [systemName, setSystemName] = useState('Mais Tecnologia');
+
+  useEffect(() => {
+    document.title = systemName;
+  }, [systemName]);
   const [notifications, setNotifications] = useState([
     { id: 1, icon: '⚠️', text: 'Alerta SLA: Chamado crítico #tkt-1 violou o prazo!', time: 'Há 5 min' },
     { id: 2, icon: '🔔', text: 'Novo chamado aberto: "Problema no POS da Loja 01"', time: 'Há 20 min' },
@@ -467,6 +475,22 @@ function App() {
         try {
           const res = await client.get('/auth/me');
           setUser(res.data);
+          
+          // Preload settings
+          try {
+            const settingsRes = await client.get('/settings');
+            if (settingsRes.data) {
+              const name = settingsRes.data.systemName || 'Mais Tecnologia';
+              setSystemName(name);
+              // Also temporarily inject it on the user object for convenience in the sidebar
+              res.data.systemName = name;
+              if (settingsRes.data.accentColor && !localStorage.getItem('theme')) {
+                setActiveTheme(settingsRes.data.accentColor);
+              }
+            }
+          } catch (e) {
+            console.error("Erro ao carregar configuracoes globais no App:", e);
+          }
           
           // Preload projects for task creation dropdown
           const projRes = await client.get('/projects');
@@ -590,6 +614,7 @@ function App() {
                     <Route path="/chat" element={<Chat />} />
                     <Route path="/admin" element={<AdminPanel />} />
                     <Route path="/conhecimento" element={<KnowledgeBase />} />
+                    <Route path="/settings" element={<SettingsPage />} />
                   </Routes>
                 </div>
               </div>

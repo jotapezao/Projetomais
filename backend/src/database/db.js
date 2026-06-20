@@ -183,8 +183,8 @@ export const dbService = {
 
   async create(collectionName, data, executorId = 'system', executorName = 'System') {
     if (!pool) return null;
-    const newId = `${collectionName.slice(0, 3)}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const newRecord = { id: newId, ...data, createdAt: new Date().toISOString() };
+    const newId = data.id || `${collectionName.slice(0, 3)}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const newRecord = { ...data, id: newId, createdAt: new Date().toISOString() };
     
     await pool.query(
       `INSERT INTO data_store (collection_name, id, data) VALUES ($1, $2, $3)`,
