@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   Settings as SettingsIcon, Shield, Laptop, BarChart2, Folder, 
   AlertTriangle, MessageSquare, BookOpen, Save, RefreshCw, 
-  Plus, X, Lock, Check 
+  Plus, X, Lock, Check, Bot 
 } from 'lucide-react';
 import client from '../api/client';
 
@@ -43,6 +43,12 @@ export default function Settings() {
   const [slaHighHours, setSlaHighHours] = useState(12);
   const [slaCriticalHours, setSlaCriticalHours] = useState(4);
   const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [aiHumanMode, setAiHumanMode] = useState(true);
+  const [aiTypingDelay, setAiTypingDelay] = useState(1500);
+  const [aiRepeatGreeting, setAiRepeatGreeting] = useState(false);
+  const [aiMaxQuestions, setAiMaxQuestions] = useState(3);
+  const [aiInvestigativeMode, setAiInvestigativeMode] = useState(true);
+  const [aiMaintainContext, setAiMaintainContext] = useState(true);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -68,6 +74,12 @@ export default function Settings() {
           setSlaHighHours(d.slaHighHours ?? 12);
           setSlaCriticalHours(d.slaCriticalHours ?? 4);
           setGeminiApiKey(d.geminiApiKey ?? '');
+          setAiHumanMode(d.aiHumanMode ?? true);
+          setAiTypingDelay(d.aiTypingDelay ?? 1500);
+          setAiRepeatGreeting(d.aiRepeatGreeting ?? false);
+          setAiMaxQuestions(d.aiMaxQuestions ?? 3);
+          setAiInvestigativeMode(d.aiInvestigativeMode ?? true);
+          setAiMaintainContext(d.aiMaintainContext ?? true);
         }
       } catch (err) {
         console.error("Erro ao carregar configurações", err);
@@ -104,7 +116,13 @@ export default function Settings() {
       slaMediumHours: parseInt(slaMediumHours),
       slaHighHours: parseInt(slaHighHours),
       slaCriticalHours: parseInt(slaCriticalHours),
-      geminiApiKey
+      geminiApiKey,
+      aiHumanMode,
+      aiTypingDelay: parseInt(aiTypingDelay),
+      aiRepeatGreeting,
+      aiMaxQuestions: parseInt(aiMaxQuestions),
+      aiInvestigativeMode,
+      aiMaintainContext
     };
 
     try {
@@ -288,6 +306,9 @@ export default function Settings() {
           <button className={`settings-tab-btn ${activeTab === 'kb' ? 'active' : ''}`} onClick={() => setActiveTab('kb')}>
             <BookOpen size={16} /> Central de Ajuda
           </button>
+          <button className={`settings-tab-btn ${activeTab === 'ai' ? 'active' : ''}`} onClick={() => setActiveTab('ai')}>
+            <Bot size={16} /> Inteligência Artificial
+          </button>
         </div>
 
         {/* Right: Tab content form */}
@@ -355,23 +376,6 @@ export default function Settings() {
                   Nota: Usuários que se cadastram automaticamente são designados por padrão como membros e restringidos ao domínio institucional @modaverao.com.br.
                 </p>
 
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1.25rem', marginTop: '1rem' }}>
-                  <h4 style={{ fontSize: '0.9rem', color: '#fff', marginBottom: '0.75rem', fontWeight: 600 }}>Integração com Google Gemini AI</h4>
-                  <div className="input-group">
-                    <label className="input-label">Chave de API do Gemini (GEMINI_API_KEY)</label>
-                    <input 
-                      type="password" 
-                      className="input-field" 
-                      placeholder="Cole sua chave de API aqui (AIzaSy...)" 
-                      value={geminiApiKey} 
-                      onChange={e => setGeminiApiKey(e.target.value)} 
-                      disabled={!isAdmin} 
-                    />
-                    <p style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>
-                      Insira sua chave de API do Google AI Studio para ativar as respostas de IA generativa em tempo real com leitura da base de dados e chamados. Se deixada em branco, o sistema usará as regras locais de simulação.
-                    </p>
-                  </div>
-                </div>
               </div>
             )}
 
@@ -520,6 +524,75 @@ export default function Settings() {
                   <label htmlFor="kbRequireApproval" style={{ fontSize: '0.88rem', color: '#fff', cursor: isAdmin ? 'pointer' : 'default', fontWeight: 600 }}>
                     Exigir aprovação de administrador para publicar artigos
                   </label>
+                </div>
+              </div>
+            )}
+
+            {/* AI TAB */}
+            {activeTab === 'ai' && (
+              <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <h3 className="settings-section-title">Configurações do Copiloto (IA)</h3>
+
+                <div className="input-group">
+                  <label className="input-label">Chave de API do Gemini (Google AI Studio)</label>
+                  <input 
+                    type="password" 
+                    className="input-field" 
+                    placeholder="Chave API (AIzaSy...)" 
+                    value={geminiApiKey} 
+                    onChange={e => setGeminiApiKey(e.target.value)} 
+                    disabled={!isAdmin} 
+                  />
+                  <p style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>
+                    Utilizado para habilitar o processamento real em linguagem natural do modelo Gemini RAG. Se deixado vazio, usará heurísticas locais de contingência.
+                  </p>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                  <div className="input-group">
+                    <label className="input-label">Atraso de Resposta Simulado (ms)</label>
+                    <input type="number" className="input-field" min="0" max="10000" step="500" value={aiTypingDelay} onChange={e => setAiTypingDelay(e.target.value)} disabled={!isAdmin} required />
+                    <p style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>
+                      Tempo de simulação de digitação antes de responder (Ex: 1500ms).
+                    </p>
+                  </div>
+                  <div className="input-group">
+                    <label className="input-label">Máx. Perguntas Investigativas por Turno</label>
+                    <input type="number" className="input-field" min="1" max="10" value={aiMaxQuestions} onChange={e => setAiMaxQuestions(e.target.value)} disabled={!isAdmin} required />
+                    <p style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>
+                      Limite máximo de perguntas diagnósticas que a IA pode fazer de cada vez.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <input type="checkbox" id="aiHumanMode" checked={aiHumanMode} onChange={e => setAiHumanMode(e.target.checked)} disabled={!isAdmin} style={{ width: '18px', height: '18px', cursor: isAdmin ? 'pointer' : 'default' }} />
+                    <label htmlFor="aiHumanMode" style={{ fontSize: '0.88rem', color: '#fff', cursor: isAdmin ? 'pointer' : 'default', fontWeight: 600 }}>
+                      Modo de Atendimento Humanizado (Conversa Empática e Pessoal)
+                    </label>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <input type="checkbox" id="aiInvestigativeMode" checked={aiInvestigativeMode} onChange={e => setAiInvestigativeMode(e.target.checked)} disabled={!isAdmin} style={{ width: '18px', height: '18px', cursor: isAdmin ? 'pointer' : 'default' }} />
+                    <label htmlFor="aiInvestigativeMode" style={{ fontSize: '0.88rem', color: '#fff', cursor: isAdmin ? 'pointer' : 'default', fontWeight: 600 }}>
+                      Suporte Investigativo e Diagnóstico (Perguntar antes de resolver)
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <input type="checkbox" id="aiMaintainContext" checked={aiMaintainContext} onChange={e => setAiMaintainContext(e.target.checked)} disabled={!isAdmin} style={{ width: '18px', height: '18px', cursor: isAdmin ? 'pointer' : 'default' }} />
+                    <label htmlFor="aiMaintainContext" style={{ fontSize: '0.88rem', color: '#fff', cursor: isAdmin ? 'pointer' : 'default', fontWeight: 600 }}>
+                      Manter Contexto e Histórico Completo da Conversa
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <input type="checkbox" id="aiRepeatGreeting" checked={aiRepeatGreeting} onChange={e => setAiRepeatGreeting(e.target.checked)} disabled={!isAdmin} style={{ width: '18px', height: '18px', cursor: isAdmin ? 'pointer' : 'default' }} />
+                    <label htmlFor="aiRepeatGreeting" style={{ fontSize: '0.88rem', color: '#fff', cursor: isAdmin ? 'pointer' : 'default', fontWeight: 600 }}>
+                      Permitir que a IA se apresente a cada mensagem enviada (se desativado, saúda apenas no contato inicial)
+                    </label>
+                  </div>
                 </div>
               </div>
             )}

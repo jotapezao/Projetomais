@@ -276,11 +276,58 @@ const ProMaisAIWidget = () => {
   ]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState("Analisando o problema...");
+  const [settings, setSettings] = useState({
+    aiTypingDelay: 1500,
+    aiHumanMode: true,
+    aiRepeatGreeting: false,
+    aiMaxQuestions: 3,
+    aiInvestigativeMode: true,
+    aiMaintainContext: true
+  });
   const chatEndRef = useRef(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMsgs]);
+
+  // Carregar configurações do banco de dados quando abrir o copiloto
+  useEffect(() => {
+    if (isOpen) {
+      client.get('/settings').then(res => {
+        if (res.data) {
+          setSettings({
+            aiTypingDelay: res.data.aiTypingDelay !== undefined ? Number(res.data.aiTypingDelay) : 1500,
+            aiHumanMode: res.data.aiHumanMode ?? true,
+            aiRepeatGreeting: res.data.aiRepeatGreeting ?? false,
+            aiMaxQuestions: res.data.aiMaxQuestions !== undefined ? Number(res.data.aiMaxQuestions) : 3,
+            aiInvestigativeMode: res.data.aiInvestigativeMode ?? true,
+            aiMaintainContext: res.data.aiMaintainContext ?? true
+          });
+        }
+      }).catch(err => console.error("Erro ao carregar configurações de IA no widget:", err));
+    }
+  }, [isOpen]);
+
+  // Ciclo das mensagens intermediárias de carregamento
+  useEffect(() => {
+    let interval;
+    if (loading) {
+      const statuses = [
+        "Analisando o problema...",
+        "Consultando nossa base de conhecimento...",
+        "Verificando possíveis causas..."
+      ];
+      let currentIndex = 0;
+      setLoadingStatus(statuses[0]);
+
+      interval = setInterval(() => {
+        currentIndex = (currentIndex + 1) % statuses.length;
+        setLoadingStatus(statuses[currentIndex]);
+      }, 750);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
 
   const handleSendAI = async (textToSend) => {
     if (!textToSend.trim()) return;
@@ -289,8 +336,24 @@ const ProMaisAIWidget = () => {
     setInputText('');
     setLoading(true);
 
+    const historyPayload = chatMsgs.map(m => ({
+      role: m.sender === 'ai' ? 'assistant' : 'user',
+      content: m.text
+    }));
+
     try {
-      const res = await client.post('/ai/chat', { message: textToSend });
+      const start = Date.now();
+      const res = await client.post('/ai/chat', { 
+        message: textToSend,
+        history: settings.aiMaintainContext ? historyPayload : []
+      });
+
+      const elapsed = Date.now() - start;
+      const delayNeeded = Math.max(0, settings.aiTypingDelay - elapsed);
+      if (delayNeeded > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayNeeded));
+      }
+
       setChatMsgs(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: res.data.reply }]);
 
       // Process automated actions from backend
@@ -321,7 +384,8 @@ const ProMaisAIWidget = () => {
           }
         }
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       setChatMsgs(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: 'Desculpe, tive um problema ao me conectar ao servidor de IA.' }]);
     } finally {
       setLoading(false);
@@ -412,7 +476,7 @@ const ProMaisAIWidget = () => {
             ))}
             {loading && (
               <div style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                <Loader size={14} className="spin" /> ProMais AI analisando...
+                <Loader size={14} className="spin" /> {loadingStatus}
               </div>
             )}
             <div ref={chatEndRef} />

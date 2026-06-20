@@ -8,20 +8,33 @@ router.use(verifyToken);
 
 // AI Assistant Chatbot Copilot
 router.post('/chat', async (req, res) => {
-  const { message, context = {} } = req.body;
+  const { message, history = [], context = {} } = req.body;
   if (!message) {
     return res.status(400).json({ error: 'Mensagem vazia' });
   }
 
-  // Carregar geminiApiKey dinamicamente do banco ou do ambiente
+  // Carregar configurações de IA dinamicamente
   let geminiKey = process.env.GEMINI_API_KEY;
+  let aiHumanMode = true;
+  let aiTypingDelay = 1500;
+  let aiRepeatGreeting = false;
+  let aiMaxQuestions = 3;
+  let aiInvestigativeMode = true;
+  let aiMaintainContext = true;
+
   try {
     const config = await dbService.getById('settings', 'global-config');
-    if (config && config.geminiApiKey) {
-      geminiKey = config.geminiApiKey;
+    if (config) {
+      if (config.geminiApiKey) geminiKey = config.geminiApiKey;
+      if (config.aiHumanMode !== undefined) aiHumanMode = config.aiHumanMode;
+      if (config.aiTypingDelay !== undefined) aiTypingDelay = Number(config.aiTypingDelay);
+      if (config.aiRepeatGreeting !== undefined) aiRepeatGreeting = config.aiRepeatGreeting;
+      if (config.aiMaxQuestions !== undefined) aiMaxQuestions = Number(config.aiMaxQuestions);
+      if (config.aiInvestigativeMode !== undefined) aiInvestigativeMode = config.aiInvestigativeMode;
+      if (config.aiMaintainContext !== undefined) aiMaintainContext = config.aiMaintainContext;
     }
   } catch (err) {
-    console.error("Erro ao carregar geminiApiKey das configuracoes globais:", err);
+    console.error("Erro ao carregar configuracoes de IA no backend:", err);
   }
 
   let localGenAI = null;
@@ -69,9 +82,9 @@ Sua missão é ajudar os funcionários a:
 3. Propor a abertura de chamados automaticamente caso o usuário esteja relatando um problema que não pôde ser resolvido ou se ele solicitar explicitamente a abertura de um chamado.
 
 Regras de Conversação e Tom:
-- Use pronomes em primeira pessoa do singular ("eu", "vou verificar para você", "posso abrir o chamado") para soar como uma pessoa real ajudando o colaborador.
-- Seja simpático, utilize emojis moderadamente para aquecer o diálogo e demonstre real interesse em solucionar a dificuldade do usuário.
-- Se o usuário apenas disser "olá" ou similar, cumprimente-o de forma muito calorosa, chame-o pelo nome e pergunte como pode ajudá-lo hoje, sugerindo de forma conversacional que pode ajudá-lo com chamados ou dúvidas, sem apresentar uma lista robótica e fria de comandos.
+${aiHumanMode ? `- ATENÇÃO: Use pronomes em primeira pessoa do singular ("eu", "vou verificar para você", "posso abrir o chamado") para soar como uma pessoa real ajudando o colaborador. Seja simpático, utilize emojis moderadamente para aquecer o diálogo e demonstre real interesse em solucionar a dificuldade do usuário. Responda como se estivesse no WhatsApp ou Teams.` : `- Mantenha um tom profissional, direto e formal.`}
+${!aiRepeatGreeting ? `- ATENÇÃO: NÃO repita a mensagem de apresentação (como "Olá! Sou o ProMais AI, copiloto...") se o usuário já estiver conversando com você no histórico. Vá direto ao assunto ou continue a investigação.` : ``}
+${aiInvestigativeMode ? `- ATENÇÃO: MODO INVESTIGATIVO ATIVADO. Não dê a solução de uma vez só! Faça perguntas diagnósticas curtas (no máximo ${aiMaxQuestions} perguntas por vez) para entender os sintomas antes de sugerir a solução final. Investigue cabos, conexões, LEDs e mensagens de erro.` : `- Diga as soluções diretamente com base nos manuais.`}
 
 Instruções sobre o banco de dados e ações:
 - Se você determinar que um novo chamado deve ser aberto (por exemplo, o usuário diz "abra um chamado para mim" ou tem um problema técnico sem solução nos manuais), você deve gerar uma ação do tipo "create_ticket" na lista de ações ("actions").
@@ -89,7 +102,7 @@ ${articlesText || "Nenhum manual de ajuda encontrado."}
 
 Você DEVE responder rigorosamente em formato JSON com o seguinte formato de dados (Response Schema):
 {
-  "reply": "Sua resposta amigável e calorosa simulando um atendente humano. Formate o texto em markdown, use emojis de forma elegante e mantenha o tom de conversa natural.",
+  "reply": "Sua resposta. Formate o texto em markdown, use emojis de forma elegante e mantenha o tom de conversa natural.",
   "actions": [
     // Array de ações. Opcional. Se for abrir um chamado, inclua o objeto create_ticket mencionado acima.
   ]
@@ -101,7 +114,12 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
         generationConfig: { responseMimeType: "application/json" }
       });
       
-      const prompt = `${systemInstruction}\n\nMensagem do Usuário: "${message}"`;
+      let historyText = "";
+      if (aiMaintainContext && history && history.length > 0) {
+        historyText = "\n\nHistórico recente da conversa:\n" + history.map(h => `${h.role === 'user' ? 'Usuário' : 'Atendente'}: ${h.content || h.text}`).join('\n');
+      }
+
+      const prompt = `${systemInstruction}${historyText}\n\nMensagem Atual do Usuário: "${message}"`;
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
       const parsed = JSON.parse(responseText);
@@ -127,9 +145,17 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
       return res.json({ reply, actions });
     }
 
+    // Obter última resposta do assistente para controle de estado
+    const lastAIReply = [...history].reverse().find(h => h.role === 'assistant' || h.role === 'model' || h.sender === 'ai')?.content || '';
+    const lastAIReplyLower = lastAIReply.toLowerCase();
+
     // B. Chitchat / Pequenas interações sociais humanas
     if (cleanMsg === 'oi' || cleanMsg === 'ola' || cleanMsg === 'olá' || cleanMsg === 'bom dia' || cleanMsg === 'boa tarde' || cleanMsg === 'boa noite') {
-      reply = `Olá, ${req.user.name || 'colaborador'}! Tudo bem com você? 😊 Eu sou o ProMais AI, seu assistente pessoal de suporte.\n\nComo posso te ajudar hoje? Posso te ajudar a consultar seus chamados, tirar dúvidas sobre nossos manuais de TI ou até abrir um chamado novo se for preciso!`;
+      if (!aiRepeatGreeting && history.length > 0) {
+        reply = `Oi de novo, ${req.user.name || 'colaborador'}! Tudo bem? Em que posso te ajudar agora? 😊`;
+      } else {
+        reply = `Olá, ${req.user.name || 'colaborador'}! Tudo bem com você? 😊 Eu sou o ProMais AI, seu assistente pessoal de suporte.\n\nComo posso te ajudar hoje? Posso te ajudar a consultar seus chamados, tirar dúvidas sobre nossos manuais de TI ou até abrir um chamado novo se for preciso!`;
+      }
       return res.json({ reply, actions });
     }
     
@@ -148,7 +174,155 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
       return res.json({ reply, actions });
     }
 
-    // C. Dúvidas gerais de ajuda (sem termo específico)
+    // C. Verificações de sessões investigativas locais baseadas em histórico
+    const isZebraSession = cleanMsg.includes('zebra') || cleanMsg.includes('impressora') || 
+                           lastAIReplyLower.includes('piscando em vermelho') || 
+                           lastAIReplyLower.includes('cabo de força') || 
+                           lastAIReplyLower.includes('bobina está bem encaixada') ||
+                           lastAIReplyLower.includes('recalibrar o sensor') ||
+                           lastAIReplyLower.includes('verificar pessoalmente, tudo bem?');
+
+    if (isZebraSession) {
+      if (aiInvestigativeMode) {
+        if (lastAIReplyLower.includes('piscando em vermelho')) {
+          if (cleanMsg.includes('não liga') || cleanMsg.includes('desligada') || cleanMsg.includes('apagada') || cleanMsg.includes('morreu') || cleanMsg.includes('desligou')) {
+            reply = `Entendi. Se ela está completamente apagada, vamos verificar a energia. O cabo de força está bem encaixado atrás dela e na tomada? O botão de liga/desliga traseiro está na posição ligada? Dá uma olhada e me avisa se acendeu algo. 🔌`;
+          } else if (cleanMsg.includes('vermelho') || cleanMsg.includes('piscando') || cleanMsg.includes('pisca')) {
+            reply = `Certo, led vermelho piscando geralmente indica falta de papel ou tampa destravada. Você pode abrir a impressora, verificar se a bobina está bem encaixada, fechar a tampa com firmeza até fazer um 'clique' e tentar de novo? Me diz se mudou a cor do led. 🖨️`;
+          } else {
+            reply = `Entendi. Para eu te dar a instrução correta: ela está com o led vermelho piscando ou está totalmente desligada e sem luz?`;
+          }
+          return res.json({ reply, actions });
+        }
+        
+        if (lastAIReplyLower.includes('cabo de força')) {
+          if (cleanMsg.includes('não') || cleanMsg.includes('desligada') || cleanMsg.includes('apagada') || cleanMsg.includes('continua') || cleanMsg.includes('nada') || cleanMsg.includes('mesmo')) {
+            reply = `Puxa, nesse caso parece ser um problema físico ou de fonte de energia queimada. Vou precisar abrir um chamado para nossa equipe técnica ir até aí verificar pessoalmente, tudo bem? Posso prosseguir com a abertura? ⚙️`;
+          } else {
+            reply = `Que ótimo que ligou! E agora, ela está com o led verde fixo ou piscando em alguma cor?`;
+          }
+          return res.json({ reply, actions });
+        }
+
+        if (lastAIReplyLower.includes('bobina está bem encaixada')) {
+          if (cleanMsg.includes('não') || cleanMsg.includes('piscando') || cleanMsg.includes('vermelho') || cleanMsg.includes('continua') || cleanMsg.includes('tem bobina') || cleanMsg.includes('mesma')) {
+            reply = `Certo. Vamos tentar recalibrar o sensor de papel dela. É bem simples: desliga a impressora no botão traseiro. Segure o botão Feed da frente pressionado e, sem soltá-lo, ligue a impressora novamente. Mantenha pressionado até o led piscar duas vezes e solte. Ela deve soltar uma ou duas etiquetas e calibrar. Deu certo? 🏷️`;
+          } else {
+            reply = `Perfeito! O led ficou verde e voltou a imprimir normalmente? Me avisa se precisar de mais algo.`;
+          }
+          return res.json({ reply, actions });
+        }
+
+        if (lastAIReplyLower.includes('recalibrar o sensor')) {
+          if (cleanMsg.includes('não') || cleanMsg.includes('falhou') || cleanMsg.includes('erro') || cleanMsg.includes('piscando') || cleanMsg.includes('continua') || cleanMsg.includes('mesmo')) {
+            reply = `Entendi. Como a calibração não resolveu, vou abrir um chamado para um técnico ir dar uma olhada e resolver isso para você, ok? Só um minutinho que já vou registrar... ⚙️`;
+            actions = [{
+              type: 'create_ticket',
+              payload: {
+                subject: 'Problema Impressora Zebra - Não imprime / Vermelho piscando',
+                description: `Chamado aberto via copiloto ProMais AI. Usuário relatou problema com impressora Zebra. Passou pelas etapas de verificação de energia, bobina de papel e calibração Feed, mas o led continua piscando vermelho.`,
+                category: 'TI e Infraestrutura',
+                priority: 'media'
+              }
+            }];
+          } else {
+            reply = `Maravilha! Fico feliz que a calibração tenha funcionado e esteja tudo funcionando. Se precisar de mais alguma ajuda, é só me chamar. Bom trabalho! 😊`;
+          }
+          return res.json({ reply, actions });
+        }
+
+        if (lastAIReplyLower.includes('verificar pessoalmente, tudo bem?')) {
+          if (cleanMsg.includes('sim') || cleanMsg.includes('pode') || cleanMsg.includes('claro') || cleanMsg.includes('ok') || cleanMsg.includes('prosseguir') || cleanMsg.includes('abrir')) {
+            reply = `Combinado! Estou abrindo o chamado de suporte técnico agora mesmo. Só um minutinho... ⚙️`;
+            actions = [{
+              type: 'create_ticket',
+              payload: {
+                subject: 'Problema Impressora Zebra - Apagada / Sem energia',
+                description: `Chamado aberto via copiloto ProMais AI. Usuário relatou que a impressora Zebra está apagada e não liga. Cabos de força e tomadas foram verificados pelo usuário no local.`,
+                category: 'TI e Infraestrutura',
+                priority: 'alta'
+              }
+            }];
+          } else {
+            reply = `Entendido. Cancelei a abertura do chamado. Se mudar de ideia ou quiser tentar outra coisa, estou por aqui!`;
+          }
+          return res.json({ reply, actions });
+        }
+
+        // Caso inicial
+        reply = `Oi! Vi que você está com problemas na impressora Zebra. Para eu te ajudar a resolver rápido, me conta: ela está ligada e com o led verde aceso, ou está piscando em vermelho? 🖨️`;
+        return res.json({ reply, actions });
+      } else {
+        // Se o modo investigativo estiver desativado, dá a solução direta baseada no manual
+        reply = `Para resolver problemas na impressora Zebra:\n\n1. **Led Vermelho Piscando:** Geralmente indica falta de papel ou tampa destravada. Verifique se a bobina está bem posicionada e feche a tampa firmemente.\n2. **Calibração:** Se continuar piscando, desligue a impressora, segure o botão Feed da frente e ligue-a no botão traseiro mantendo o Feed pressionado até piscar duas vezes.\n3. **Sem Energia:** Verifique as conexões do cabo de força na impressora e na tomada.\n\nSe nada funcionar, digite **'abrir chamado'** para acionar a equipe de TI! 🛠️`;
+        return res.json({ reply, actions });
+      }
+    }
+
+    const isVPNSession = cleanMsg.includes('vpn') || cleanMsg.includes('forticlient') || cleanMsg.includes('conexão') ||
+                         lastAIReplyLower.includes('dificuldades para conectar na vpn') ||
+                         lastAIReplyLower.includes('reiniciar seu roteador') ||
+                         lastAIReplyLower.includes('senha do domínio');
+
+    if (isVPNSession) {
+      if (aiInvestigativeMode) {
+        if (lastAIReplyLower.includes('dificuldades para conectar na vpn')) {
+          if (cleanMsg.includes('senha') || cleanMsg.includes('credenciais') || cleanMsg.includes('login') || cleanMsg.includes('erro de login') || cleanMsg.includes('usuario')) {
+            reply = `Se for erro de credenciais ou senha expirada, o ideal é resetar a senha do domínio. Você lembra se trocou sua senha recentemente? Posso te guiar para alterar ou prefere que eu abra um chamado de reset de senha? 🔒`;
+          } else if (cleanMsg.includes('tempo limite') || cleanMsg.includes('98') || cleanMsg.includes('carrega') || cleanMsg.includes('trava') || cleanMsg.includes('internet') || cleanMsg.includes('casa')) {
+            reply = `Certo, quando dá tempo limite de conexão ou para em 98%, geralmente é oscilação da sua internet local ou o antivírus bloqueando. Você poderia tentar reiniciar seu roteador de internet e desativar o FortiClient e abrir de novo? Me diz se deu certo. 🌐`;
+          } else {
+            reply = `Entendi. Para eu te direcionar melhor, qual erro ou mensagem aparece na tela do FortiClient ao tentar conectar?`;
+          }
+          return res.json({ reply, actions });
+        }
+
+        if (lastAIReplyLower.includes('reiniciar seu roteador')) {
+          if (cleanMsg.includes('não') || cleanMsg.includes('continua') || cleanMsg.includes('erro') || cleanMsg.includes('mesmo erro') || cleanMsg.includes('falhou')) {
+            reply = `Entendi. Nesse caso, pode ser necessário reinstalar o cliente da VPN ou reconfigurar seu usuário na rede. Vou abrir um chamado para nossa equipe de redes analisar e te ligar para resolver, tudo bem? ⚙️`;
+            actions = [{
+              type: 'create_ticket',
+              payload: {
+                subject: 'Problema Conexão VPN - Tempo Limite / 98% erro',
+                description: `Chamado aberto via copiloto ProMais AI. Usuário relatou falha na VPN. Tentou reiniciar roteador de internet, mas o erro de conexão/tempo limite persiste no FortiClient.`,
+                category: 'TI e Infraestrutura',
+                priority: 'media'
+              }
+            }];
+          } else {
+            reply = `Maravilha! VPN conectada com sucesso. Se precisar de mais alguma ajuda, é só gritar por aqui. Tenha um ótimo dia de trabalho! 💻`;
+          }
+          return res.json({ reply, actions });
+        }
+
+        if (lastAIReplyLower.includes('senha do domínio')) {
+          if (cleanMsg.includes('chamado') || cleanMsg.includes('abre') || cleanMsg.includes('sim') || cleanMsg.includes('quero') || cleanMsg.includes('pode')) {
+            reply = `Perfeito, estou abrindo um chamado para reset de senha do domínio no Active Directory (AD) para você. A equipe de suporte entrará em contato em breve. ⚙️`;
+            actions = [{
+              type: 'create_ticket',
+              payload: {
+                subject: 'Reset de Senha AD / VPN',
+                description: `Chamado aberto via copiloto ProMais AI. Solicitação de reset de senha do usuário para acesso VPN / domínio.`,
+                category: 'TI e Infraestrutura',
+                priority: 'media'
+              }
+            }];
+          } else {
+            reply = `Para alterar sua senha manualmente, você pode pressionar Ctrl+Alt+Del no computador da rede interna ou acessar o portal de self-service da empresa. Se preferir o chamado, é só me pedir.`;
+          }
+          return res.json({ reply, actions });
+        }
+
+        // Caso inicial
+        reply = `Entendi, você está com dificuldades para conectar na VPN. Você está tentando acessar de casa ou de uma rede externa, e qual erro aparece na tela (ex: erro de credenciais ou tempo limite de conexão)? 🌐`;
+        return res.json({ reply, actions });
+      } else {
+        reply = `Para solucionar problemas na VPN FortiClient:\n\n1. **Erro de Credenciais:** Certifique-se de que sua senha não expirou. Caso precise de reset, digite **'abrir chamado'**.\n2. **Erro 98% / Tempo Limite:** Geralmente é instabilidade na sua internet residencial ou bloqueio do antivírus local. Reinicie seu roteador e tente novamente.\n3. **Configuração de Gateway:** Verifique se o endereço do gateway no FortiClient está correto.\n\nSe precisar que nossa equipe atue, peça para **'abrir chamado'**! 🌐`;
+        return res.json({ reply, actions });
+      }
+    }
+
+    // D. Dúvidas gerais de ajuda (sem termo específico)
     if (cleanMsg === 'ajuda' || cleanMsg === 'quero ajuda' || cleanMsg === 'me ajuda' || cleanMsg === 'help' || cleanMsg === 'preciso de ajuda') {
       reply = `Com certeza! Estou aqui para te ajudar. 😊\n\nO que está acontecendo? Me conta um pouco do problema ou escolha uma das opções abaixo:\n` +
         `• Se for uma dúvida de TI, me diga o assunto (ex: *"como configurar VPN"*, *"impressora travou"*).\n` +
@@ -157,7 +331,7 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
       return res.json({ reply, actions });
     }
 
-    // D. Chamados (Resumos)
+    // E. Chamados (Resumos)
     if (cleanMsg.includes('resumir chamado') || cleanMsg.includes('resumo do chamado') || cleanMsg.includes('resuma')) {
       const tickets = await dbService.getCollection('tickets');
       const ticketMatch = cleanMsg.match(/(tkt-\d+)/) || cleanMsg.match(/#?(\d+)/);
@@ -231,24 +405,7 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
         reply = "Dei uma busca na lista de operadores mas infelizmente todos parecem indisponíveis no momento. 😔";
       }
     }
-    // 5. Search Help/Knowledge articles (Apenas se tiver termos técnicos reais da base de conhecimento)
-    else if (cleanMsg.includes('vpn') || cleanMsg.includes('impressora') || cleanMsg.includes('zebra') || cleanMsg.includes('senha') || cleanMsg.includes('pdv') || cleanMsg.includes('caixa') || cleanMsg.includes('rede') || cleanMsg.includes('outlook') || cleanMsg.includes('teams') || cleanMsg.includes('internet') || cleanMsg.includes('cabo')) {
-      const articles = await dbService.getCollection('knowledge');
-      const keywords = cleanMsg.split(' ').filter(w => w.length > 3);
-      const matches = articles.filter(art => 
-        keywords.some(kw => art.title.toLowerCase().includes(kw) || art.content.toLowerCase().includes(kw))
-      );
- 
-      if (matches.length > 0) {
-        reply = `Encontrei essas instruções detalhadas em nossos manuais de ajuda internos. Veja se as etapas abaixo te ajudam a resolver o problema:\n\n` +
-          matches.slice(0, 2).map(art => `📖 **${art.title}** (${art.category}):\n${art.content.slice(0, 350)}...`).join('\n\n') +
-          `\n\nCaso você siga os passos e a falha persista, ou se preferir que eu registre um chamado para a equipe de TI dar uma olhada de perto, basta digitar **'abrir chamado'** aqui no chat! 🛠️`;
-      } else {
-        reply = `Vi que você citou um termo técnico, mas infelizmente não encontrei nenhum manual cadastrado sobre isso na minha base de dados. 😔\n\n` +
-          `Quer que eu registre um chamado de suporte técnico para que a equipe de TI investigue isso? É só escrever **"abrir chamado"**!`;
-      }
-    }
-    // 6. Action-based ticket creation fallback
+    // 5. Action-based ticket creation fallback
     else if (cleanMsg.includes('abrir chamado') || cleanMsg.includes('criar chamado') || cleanMsg.includes('novo chamado') || cleanMsg.includes('registre um chamado')) {
       reply = `Com certeza! Já entendi o problema e vou registrar um chamado de suporte técnico agora mesmo no sistema. ⚙️\n\n` +
         `Estou criando a solicitação para a nossa equipe de suporte e você receberá o número do chamado em alguns instantes. Só um momento...`;
@@ -263,10 +420,14 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
         }
       }];
     }
-    // 7. Generic greeting / helper instructions
+    // 6. Generic greeting / helper instructions
     else {
-      reply = `Olá, **${req.user.name || 'colaborador'}**! Tudo bem com você? 😊 Eu sou o ProMais AI, seu assistente pessoal de suporte e operações aqui na Lojas Moda Verão.\n\n` +
-        `Como posso te ajudar hoje? Pode falar livremente comigo! Estou pronto para buscar soluções em nossos manuais, acompanhar chamados ou abrir uma nova solicitação caso precise. 💬`;
+      if (!aiRepeatGreeting && history.length > 0) {
+        reply = `Entendi. Para que eu possa te ajudar melhor, você poderia detalhar mais o problema ou me dizer se é sobre VPN, impressoras, chamados ou se gostaria de abrir um novo chamado? 😊`;
+      } else {
+        reply = `Olá, **${req.user.name || 'colaborador'}**! Tudo bem com você? 😊 Eu sou o ProMais AI, seu assistente pessoal de suporte e operações aqui na Lojas Moda Verão.\n\n` +
+          `Como posso te ajudar hoje? Pode falar livremente comigo! Estou pronto para buscar soluções em nossos manuais, acompanhar chamados ou abrir uma nova solicitação caso precise. 💬`;
+      }
     }
 
     res.json({ reply, actions });

@@ -21,7 +21,14 @@ const DEFAULT_SETTINGS = {
   slaLowHours: 48,
   slaMediumHours: 24,
   slaHighHours: 12,
-  slaCriticalHours: 4
+  slaCriticalHours: 4,
+  geminiApiKey: "",
+  aiHumanMode: true,
+  aiTypingDelay: 1500,
+  aiRepeatGreeting: false,
+  aiMaxQuestions: 3,
+  aiInvestigativeMode: true,
+  aiMaintainContext: true
 };
 
 // GET /api/settings - Obter configurações globais
