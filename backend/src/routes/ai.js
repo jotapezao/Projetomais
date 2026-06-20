@@ -141,7 +141,11 @@ Sua resposta final deve ser um JSON válido contendo os campos "reply" e "action
   try {
     // A. Filtrar inputs muito curtos ou ruídos (ex: "d", "f", "x", "ok")
     if (cleanMsg.length <= 2) {
-      reply = `Oi! Estou por aqui. Como posso te apoiar hoje? 😊 (Se precisar de a    // Obter última resposta do assistente para controle de estado
+      reply = `Oi! Estou por aqui. Como posso te apoiar hoje? 😊 (Se precisar de ajuda com algo específico, pode escrever detalhadamente!)`;
+      return res.json({ reply, actions });
+    }
+
+    // Obter última resposta do assistente para controle de estado
     const lastAIReply = [...history].reverse().find(h => h.role === 'assistant' || h.role === 'model' || h.sender === 'ai')?.content || '';
     const lastAIReplyLower = lastAIReply.toLowerCase();
 
