@@ -149,7 +149,7 @@ export default function Login({ onLogin }) {
         .demo-btn {
           background: rgba(255, 255, 255, 0.03) !important;
           border: 1px solid rgba(255, 255, 255, 0.06) !important;
-          color: hsl(var(--text-secondary)) !important;
+          color: var(--text-secondary) !important;
           transition: all 0.2s ease !important;
           cursor: pointer;
         }
@@ -165,17 +165,17 @@ export default function Login({ onLogin }) {
         {/* Left Side - Branding */}
         <div className="login-branding">
           <div style={{ marginBottom: '2rem' }}>
-            <ShieldCheck size={48} color="hsl(var(--accent-primary))" style={{ marginBottom: '1.25rem' }} />
-            <h1 style={{ fontSize: '2.4rem', fontWeight: 800, marginBottom: '1rem', background: 'linear-gradient(to right, #fff, hsl(var(--text-secondary)))', WebkitBackgroundClip: 'text', color: 'transparent', letterSpacing: '-0.02em' }}>
+            <ShieldCheck size={48} color="var(--accent-primary)" style={{ marginBottom: '1.25rem' }} />
+            <h1 style={{ fontSize: '2.4rem', fontWeight: 800, marginBottom: '1rem', background: 'linear-gradient(to right, #fff, var(--text-secondary))', WebkitBackgroundClip: 'text', color: 'transparent', letterSpacing: '-0.02em' }}>
               Lojas Moda Verão
             </h1>
-            <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '1rem', lineHeight: 1.6, margin: 0 }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.6, margin: 0 }}>
               Plataforma profissional de processos, incidentes corporativos, canais padronizados de comunicação e cronogramas integrados.
             </p>
           </div>
           
           <div style={{ marginTop: '1.5rem' }}>
-            <h3 style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'hsl(var(--text-muted))', marginBottom: '0.875rem' }}>
+            <h3 style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.875rem' }}>
               Acesso Rápido para Demonstração:
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
@@ -196,7 +196,7 @@ export default function Login({ onLogin }) {
                 </button>
               ))}
             </div>
-            <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'hsl(var(--text-muted))', margin: '1rem 0 0 0' }}>
+            <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)', margin: '1rem 0 0 0' }}>
               * A senha de demonstração para todos os usuários é "123456"
             </p>
           </div>
@@ -209,7 +209,7 @@ export default function Login({ onLogin }) {
             // REGISTRATION FORM
             <div>
               <h2 style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '0.5rem', textAlign: 'center', color: '#fff' }}>Cadastro Corporativo</h2>
-              <p style={{ fontSize: '0.82rem', color: 'hsl(var(--text-muted))', textAlign: 'center', marginBottom: '1.75rem', margin: '0 0 1.75rem 0' }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textAlign: 'center', marginBottom: '1.75rem', margin: '0 0 1.75rem 0' }}>
                 Permitido apenas para e-mails institucionais <strong>@modaverao.com.br</strong>
               </p>
 
@@ -222,27 +222,27 @@ export default function Login({ onLogin }) {
               <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <div className="login-input-group" style={{ flex: 1 }}>
-                    <label style={{ fontSize: '0.75rem', color: 'hsl(var(--text-secondary))', fontWeight: 500 }}>Nome</label>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Nome</label>
                     <input type="text" className="login-input" value={regName} onChange={e => setRegName(e.target.value)} placeholder="João" required />
                   </div>
                   <div className="login-input-group" style={{ flex: 1 }}>
-                    <label style={{ fontSize: '0.75rem', color: 'hsl(var(--text-secondary))', fontWeight: 500 }}>Sobrenome</label>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Sobrenome</label>
                     <input type="text" className="login-input" value={regLastName} onChange={e => setRegLastName(e.target.value)} placeholder="Silva" required />
                   </div>
                 </div>
 
                 <div className="login-input-group">
-                  <label style={{ fontSize: '0.75rem', color: 'hsl(var(--text-secondary))', fontWeight: 500 }}>E-mail corporativo</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>E-mail corporativo</label>
                   <div style={{ position: 'relative' }}>
-                    <Mail size={16} style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))' }} />
+                    <Mail size={16} style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input type="email" className="login-input" style={{ paddingLeft: '2.5rem !important' }} value={regEmail} onChange={e => setRegEmail(e.target.value)} placeholder="colaborador@modaverao.com.br" required />
                   </div>
                 </div>
 
                 <div className="login-input-group">
-                  <label style={{ fontSize: '0.75rem', color: 'hsl(var(--text-secondary))', fontWeight: 500 }}>Senha</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Senha</label>
                   <div style={{ position: 'relative' }}>
-                    <Lock size={16} style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))' }} />
+                    <Lock size={16} style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input type="password" className="login-input" style={{ paddingLeft: '2.5rem !important' }} value={regPassword} onChange={e => setRegPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required />
                   </div>
                 </div>
@@ -275,9 +275,9 @@ export default function Login({ onLogin }) {
 
               <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div className="login-input-group">
-                  <label style={{ fontSize: '0.75rem', color: 'hsl(var(--text-secondary))', fontWeight: 500 }}>E-mail Corporativo</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>E-mail Corporativo</label>
                   <div style={{ position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center' }}>
+                    <div style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
                       <Mail size={16} />
                     </div>
                     <input
@@ -293,9 +293,9 @@ export default function Login({ onLogin }) {
                 </div>
 
                 <div className="login-input-group">
-                  <label style={{ fontSize: '0.75rem', color: 'hsl(var(--text-secondary))', fontWeight: 500 }}>Senha</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Senha</label>
                   <div style={{ position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center' }}>
+                    <div style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
                       <Lock size={16} />
                     </div>
                     <input

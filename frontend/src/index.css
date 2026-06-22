@@ -13,6 +13,7 @@
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.75);
   --text-muted: rgba(255, 255, 255, 0.45);
+  --text-active: #ffffff;
   
   --success: 142 71% 45%; /* Emerald HSL values for badge background */
   --success-light: #10b981;
@@ -35,7 +36,7 @@
   
   /* Theme selection variables */
   --accent-primary-val: 252 87% 67%; /* default Purple */
-  --accent-primary: hsl(var(--accent-primary-val));
+  --accent-primary: var(--accent-primary-val);
   --accent-primary-hover: hsl(252 87% 75%);
   --shadow-neon: 0 0 20px -3px hsla(var(--accent-primary-val), 0.45);
 }
@@ -49,6 +50,7 @@
   --text-primary: #0f172a;
   --text-secondary: #334155;
   --text-muted: #64748b;
+  --text-active: var(--accent-primary);
   
   --border: rgba(15, 23, 42, 0.08);
   --border-light: rgba(15, 23, 42, 0.12);
@@ -65,25 +67,25 @@
    ========================================================================== */
 :root[data-theme="indigo"] {
   --accent-primary-val: 252 87% 67%;
-  --accent-primary: hsl(var(--accent-primary-val));
+  --accent-primary: var(--accent-primary-val);
   --accent-primary-hover: hsl(252 87% 75%);
 }
 
 :root[data-theme="blue"] {
   --accent-primary-val: 217 91% 60%;
-  --accent-primary: hsl(var(--accent-primary-val));
+  --accent-primary: var(--accent-primary-val);
   --accent-primary-hover: hsl(217 91% 70%);
 }
 
 :root[data-theme="emerald"] {
   --accent-primary-val: 142 71% 45%;
-  --accent-primary: hsl(var(--accent-primary-val));
+  --accent-primary: var(--accent-primary-val);
   --accent-primary-hover: hsl(142 71% 55%);
 }
 
 :root[data-theme="orange"] {
   --accent-primary-val: 24 95% 53%;
-  --accent-primary: hsl(var(--accent-primary-val));
+  --accent-primary: var(--accent-primary-val);
   --accent-primary-hover: hsl(24 95% 63%);
 }
 
@@ -168,7 +170,7 @@ a:hover {
 }
 
 .glass-card {
-  background: rgba(15, 25, 50, 0.35);
+  background: var(--bg-card);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border);
@@ -179,7 +181,7 @@ a:hover {
 
 .glass-card:hover {
   transform: translateY(-4px);
-  background: rgba(15, 25, 50, 0.5);
+  background: var(--bg-glass);
   border-color: hsla(var(--accent-primary-val), 0.45);
   box-shadow: var(--shadow-lg), 0 0 20px -3px hsla(var(--accent-primary-val), 0.25);
 }
@@ -225,7 +227,7 @@ a:hover {
 }
 
 .btn-danger {
-  background: hsl(var(--danger));
+  background: var(--danger);
   color: #fff;
 }
 
@@ -347,19 +349,19 @@ a:hover {
 
 .badge-warning {
   background: hsla(var(--warning), 0.15);
-  color: hsl(var(--warning));
+  color: var(--warning);
   border: 1px solid hsla(var(--warning), 0.3);
 }
 
 .badge-danger {
   background: hsla(var(--danger), 0.15);
-  color: hsl(var(--danger));
+  color: var(--danger);
   border: 1px solid hsla(var(--danger), 0.3);
 }
 
 .badge-info {
   background: hsla(var(--info), 0.15);
-  color: hsl(var(--info));
+  color: var(--info);
   border: 1px solid hsla(var(--info), 0.3);
 }
 

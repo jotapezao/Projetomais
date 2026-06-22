@@ -121,17 +121,88 @@ ETAPA 5 — ESCALADA:
 DIAGNÓSTICO DE IMPRESSORAS (USE A BASE DE CONHECIMENTO ABAIXO):
 ════════════════════════════════════
 
-Problemas comuns e perguntas-chave:
-- "não imprime nada" → Verifique: está ligada? Conexão USB/rede? Fila de impressão travada?
-- "imprimindo com falhas / manchas / linhas" → Pergunte: são linhas horizontais ou verticais? A cor está toda errada ou só uma cor? Isso acontece em todas as impressões?
-- "papel enroscado / atolamento" → Siga o procedimento de remoção segura de papel
-- "led piscando vermelho" → Depende da marca: Zebra = calibração; Epson/HP = erro de papel ou tinta
-- "não liga" → Verifique cabo, tomada, estabilizador
+ProbleMarcas frequentes:
+- Zebra GC420/ZD220/ZD410: impressoras de etiquetas térmicas. Led vermelho = sem papel/tampa aberta/sensor sujo. Calibração = segure Feed + ligue até piscar 2x.
+- Epson (L355, L3150, L3250, L4160, L6190): jato de tinta com tanque externo. Limpeza de cabeçote pelo software. Tinta original obrigatória.
+- HP LaserJet (Pro, Enterprise, Color): laser, toner, papel, fusora.
+- Canon (PIXMA, ImageClass): similar Epson/HP.
 
-Marcas frequentes:
-- Zebra GC420/ZD220: etiquetas, led vermelho = sem papel ou tampa aberta, calibração via botão Feed
-- Epson (L355, L3150, L3250): jato de tinta, limpeza de cabeçote, recarga de tinta
-- HP LaserJet: toner, erro de papel, aquecimento
+════════════════════════════════════
+ENCICLOPÉDIA DE TI — USE SEMPRE ESTAS INFORMAÇÕES:
+════════════════════════════════════
+
+▶ IMPRESSORAS:
+• LED VERMELHO PISCANDO (Zebra): Verificar bobina → fechar tampa → calibrar via Feed (segure Feed + ligue até piscar 2x → solte → ela imprime etiqueta de calibração).
+• IMPRESSÃO BORRADA (Zebra): Limpar cabeçote com álcool isopropílico 70% + cotonete. Aumentar Density nas configurações. Reduzir velocidade para 4ips.
+• OFFLINE/NÃO RECONHECIDA: Reiniciar Spooler (services.msc → Spooler → Reiniciar). Reconectar USB. Reinstalar driver.
+• MANCHAS/LISTRAS HORIZONTAIS (Epson): Bicos entupidos → Painel de Controle → Impressora → Utilitários → Limpeza das cabeças (máx. 3x seguidas).
+• CORES FALTANDO (Epson): Tanque vazio → reabastecer com tinta original Epson da cor específica.
+• PAPEL ENROSCADO (qualquer): Desligar da tomada → abrir TODAS tampas → puxar papel DEVAGAR na direção de saída → verificar resíduos com lanterna → reiniciar.
+• NÃO LIGA: Verificar cabo de força (conector quadrado na traseira), tomada, estabilizador.
+• MANCHAS DE TONER (HP Laser): Sacudir cartucho. Riscos no cilindro = trocar cartucho.
+• TONER NÃO FIXA (HP): Fusora desgastada → chamado.
+
+▶ COMPUTADORES — HARDWARE:
+• NÃO LIGA (nenhum sinal): Verificar chave 127V/220V na fonte, cabo de força, tomada, estabilizador. Testar botão de ligar por 5s.
+• TELA PRETA (liga mas sem imagem): Reconectar HDMI/VGA nas duas pontas. Selecionar entrada correta no monitor (HDMI1/HDMI2/VGA). Remover/reinserir RAM. Verificar se placa de vídeo está bem encaixada. Desconectar pendrives.
+• BIPS AO INICIAR: 1 bip longo repetido = RAM com defeito. Remover e reinserir pentes.
+• SUPERAQUECIMENTO: Temperatura CPU >90°C → limpeza de poeira com ar comprimido + verificar cooler girando. Após 3+ anos = pasta térmica ressecada.
+• TELA AZUL (BSOD): Anotar STOP CODE. sfc /scannow. BSOD frequente = hardware com defeito → chamado urgente.
+• LENTO/TRAVANDO: Ctrl+Shift+Esc → verificar CPU/RAM/Disco. Reiniciar. Deletar %temp%. Desativar programas de startup.
+• DISCO A 100%: Desativar SysMain em services.msc. Verificar saúde: wmic diskdrive get status. "Pred Fail" = HD com defeito → chamado urgente.
+• BATERIA NOTEBOOK: powercfg /batteryreport. Abaixo de 50% de capacidade → substituir. Bateria estufada → chamado urgente (risco de incêndio).
+• FAN BARULHENTO: Limpar poeira. Verificar se cooler da CPU gira. Cooler parado = chamado urgente.
+• REINICIA SOZINHO: Superaquecimento, fonte instável ou RAM com defeito.
+
+▶ REDE E CONECTIVIDADE:
+• SEM INTERNET (cabo): LED do RJ45 apagado = sem físico. Trocar cabo. Testar porta no switch. CMD: ping 8.8.8.8.
+• SEM INTERNET (Wi-Fi): Verificar se Wi-Fi está ativado. Esquecer rede e reconectar. Reiniciar roteador. CMD admin: netsh winsock reset → reiniciar PC.
+• VPN FORTICLIENT — erro de credencial: Senha AD expirada → reset.
+• VPN FORTICLIENT — trava em 40%: Problema na rede local ou antivírus bloqueando. Testar com dados do celular.
+• VPN FORTICLIENT — trava em 98%: Gerenciador de Dispositivos → Adaptadores de Rede → remover "Fortinet SSL VPN Adapter" → reiniciar PC.
+• REDE CAIU NA LOJA: Verificar LEDs roteador/switch. Reiniciar ordem: roteador → aguardar 2 min → switch → aguardar 1 min → computadores. Contatar provedor se WAN caiu.
+• WI-FI INSTÁVEL: Aproximar do roteador. Usar cabo. Mudar para rede 5GHz. Mudar canal do roteador.
+
+▶ WINDOWS:
+• INICIALIZAÇÃO LENTA: Desabilitar startup (Ctrl+Shift+Esc → Inicialização). HDD lento = candidato a SSD.
+• WINDOWS UPDATE TRAVADO: Solução de Problemas do Update → deletar C:\\Windows\\SoftwareDistribution\\Download → DISM /Online /Cleanup-Image /RestoreHealth.
+• DLL FALTANDO: Instalar Visual C++ Redistributable ou .NET Framework correspondente. sfc /scannow.
+• VÍRUS/MALWARE: DESCONECTAR DA REDE. Notificar TI. Windows Defender + Malwarebytes. NUNCA pagar resgate.
+• ESPAÇO BAIXO: cleanmgr. Esvaziar lixeira. %temp% → deletar tudo. Mover arquivos para OneDrive.
+• TELA TRAVOU: Ctrl+Alt+Del → Gerenciador de Tarefas → Finalizar processo. Se não funcionar: segurar Power 10s.
+
+▶ OFFICE / TEAMS / OUTLOOK:
+• OFFICE NÃO ABRE: Ctrl+clique (modo seguro). Reparar via Painel de Controle.
+• OUTLOOK OFFLINE: Enviar/Receber → desmarcar "Trabalhar Offline".
+• OUTLOOK LENTO: Reduzir cache de e-mails. Reparar perfil. ScanPST para .ost/.pst corrompido.
+• TEAMS SEM ÁUDIO: Configurações → Dispositivos → selecionar microfone/speaker. Verificar Privacidade → Microfone no Windows.
+• TEAMS LENTO: Limpar cache: %appdata%\\Microsoft\\Teams (subpastas Cache, blob_storage, databases, GPUCache, Local Storage).
+• CONTA NÃO ATIVADA: Verificar login com conta corporativa (@modaverao.com.br). Sair e entrar novamente.
+
+▶ PERIFÉRICOS:
+• MOUSE/TECLADO: Testar outra porta USB traseira. Verificar pilhas (sem fio). Gerenciador de Dispositivos → desinstalar/reinstalar.
+• PENDRIVE NÃO APARECE: diskmgmt.msc → atribuir letra. Testar em outro computador. NÃO formatar se tiver dados importantes.
+• MONITOR SEM SINAL: Selecionar entrada correta no monitor. Trocar cabo. Testar em outro computador.
+• SEM ÁUDIO: Volume no mudo? Dispositivo de saída correto? Cabo verde (saída) não rosa (microfone)? Driver de áudio atualizado?
+• LEITOR CÓDIGO DE BARRAS: Cursor no campo certo do sistema? Código danificado? Distância 5-30cm? Tipo de código suportado?
+
+▶ PDV E LOJA:
+• PINPAD/POS COM ERRO: Desligar 5s → aguardar 30s → religar. "Comunicação não estabelecida" = trocar porta USB.
+• CAIXA/PDV OFFLINE: Verificar cabo de rede. F5 para recarregar. Reiniciar terminal.
+• CÂMERA CFTV: Verificar alimentação e cabo de rede. IP da câmera: ping no CMD. Reiniciar NVR/DVR.
+• NOBREAK BEEPANDO: Bipe rápido = em bateria (normal). Bipe lento = bateria fraca → salvar e desligar. 3+ anos = trocar bateria.
+• LEITOR DE BALANÇA: Verificar porta COM/USB. Configuração de baud rate.
+
+▶ SEGURANÇA E SENHAS:
+• SENHA EXPIRADA (Windows/AD): Ctrl+Alt+Del → Alterar senha. Ou: passwordreset.microsoftonline.com.
+• CONTA BLOQUEADA: Aguardar 30 min (automático) ou abrir chamado para TI desbloquear no AD.
+• SUSPEITA DE VÍRUS: Desconectar da rede → notificar TI → Windows Defender + Malwarebytes.
+• MFA (Autenticação de 2 fatores): Microsoft Authenticator no celular → aprovar solicitação quando aparecer.
+
+▶ BACKUP E DADOS:
+• ARQUIVO DELETADO: Verificar Lixeira → OneDrive (lixeira online) → Versões anteriores (clique direito na pasta).
+• ONEDRIVE: Ícone na bandeja com check verde = sincronizado. Ícone com X = erro de sincronização. Verificar espaço disponível.
+• HD COM DEFEITO: wmic diskdrive get status = "Pred Fail" → URGENTE fazer backup imediato e chamado para troca.
 
 ════════════════════════════════════
 DADOS DO SISTEMA:
@@ -166,7 +237,7 @@ Para abrir chamado, inclua em "actions":
   }
 }
 
-Não crie chamados para dúvidas informativas resolvidas pela base de conhecimento.`;
+Não crie chamados para dúvidas informativas resolvidas pela base de conhecimento.\`;
 
       const model = localGenAI.getGenerativeModel({
         model: "gemini-2.5-flash",

@@ -259,7 +259,7 @@ export default function Chat() {
         .typing-dots span {
           width: 5px;
           height: 5px;
-          background: hsl(var(--text-secondary));
+          background: var(--text-secondary);
           border-radius: 50%;
           animation: bounce-dot 1.4s infinite ease-in-out both;
         }
@@ -273,12 +273,12 @@ export default function Chat() {
       
       {/* Channels List */}
       <div className="glass-card" style={{ width: '280px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid hsl(var(--border))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Canais</h2>
           {isAllowedToCreate && (
             <button 
               className="btn btn-secondary" 
-              style={{ padding: '0.25rem', border: 'none', background: 'transparent', color: 'hsl(var(--text-secondary))' }}
+              style={{ padding: '0.25rem', border: 'none', background: 'transparent', color: 'var(--text-secondary)' }}
               onClick={() => setShowCreateModal(true)}
               title="Criar novo canal"
             >
@@ -288,9 +288,9 @@ export default function Chat() {
         </div>
 
         {/* Filter Input */}
-        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid hsl(var(--border))' }}>
-          <div className="input-group" style={{ margin: 0, flexDirection: 'row', alignItems: 'center', background: 'hsl(var(--bg-secondary))', padding: '0 0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid hsl(var(--border))' }}>
-            <Search size={14} color="hsl(var(--text-muted))" style={{ marginRight: '0.25rem' }} />
+        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)' }}>
+          <div className="input-group" style={{ margin: 0, flexDirection: 'row', alignItems: 'center', background: 'var(--bg-secondary)', padding: '0 0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+            <Search size={14} color="var(--text-muted)" style={{ marginRight: '0.25rem' }} />
             <input 
               type="text" 
               placeholder="Buscar canal ou contato..." 
@@ -303,7 +303,7 @@ export default function Chat() {
         
         <div style={{ padding: '1rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           
-          <p style={{ fontSize: '0.75rem', fontWeight: '600', color: 'hsl(var(--text-muted))', textTransform: 'uppercase', margin: '0.5rem 0' }}>Grupos & Projetos</p>
+          <p style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', margin: '0.5rem 0' }}>Grupos & Projetos</p>
           {filteredRooms.filter(r => r.type !== 'private').map(room => (
             <div 
               key={room.id} 
@@ -311,7 +311,7 @@ export default function Chat() {
               style={{ 
                 padding: '0.75rem', borderRadius: 'var(--radius-md)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem',
                 background: activeRoom?.id === room.id ? 'hsla(var(--accent-primary), 0.15)' : 'transparent',
-                color: activeRoom?.id === room.id ? '#fff' : 'hsl(var(--text-secondary))'
+                color: activeRoom?.id === room.id ? '#fff' : 'var(--text-secondary)'
               }}
             >
               <Hash size={16} />
@@ -319,7 +319,7 @@ export default function Chat() {
             </div>
           ))}
 
-          <p style={{ fontSize: '0.75rem', fontWeight: '600', color: 'hsl(var(--text-muted))', textTransform: 'uppercase', margin: '1.5rem 0 0.5rem 0' }}>Diretas (Usuários)</p>
+          <p style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', margin: '1.5rem 0 0.5rem 0' }}>Diretas (Usuários)</p>
           {filteredRooms.filter(r => r.type === 'private').map(room => {
             const isOnline = room.name.length % 2 === 0;
             return (
@@ -329,7 +329,7 @@ export default function Chat() {
                 style={{ 
                   padding: '0.75rem', borderRadius: 'var(--radius-md)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem',
                   background: activeRoom?.id === room.id ? 'hsla(var(--accent-primary), 0.15)' : 'transparent',
-                  color: activeRoom?.id === room.id ? '#fff' : 'hsl(var(--text-secondary))'
+                  color: activeRoom?.id === room.id ? '#fff' : 'var(--text-secondary)'
                 }}
               >
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -357,11 +357,11 @@ export default function Chat() {
       <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         
         {/* Chat Header */}
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {activeRoom?.type === 'private' ? <User size={24} color="hsl(var(--accent-primary))" /> : <Hash size={24} color="hsl(var(--accent-primary))" />}
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {activeRoom?.type === 'private' ? <User size={24} color="var(--accent-primary)" /> : <Hash size={24} color="var(--accent-primary)" />}
           <div>
             <h2 style={{ fontSize: '1.2rem', margin: 0 }}>{activeRoom?.name}</h2>
-            <p style={{ fontSize: '0.8rem', color: 'hsl(var(--text-muted))', margin: 0 }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
               {activeRoom?.type === 'company' ? 'Empresa inteira' : activeRoom?.type === 'private' ? 'Status: Online' : 'Membros do projeto'}
             </p>
           </div>
@@ -370,7 +370,7 @@ export default function Chat() {
         {/* Messages */}
         <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {messages.length === 0 ? (
-            <div style={{ textAlign: 'center', color: 'hsl(var(--text-muted))', marginTop: '2rem' }}>
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '2rem' }}>
               Nenhuma mensagem por aqui. Envie a primeira mensagem!
             </div>
           ) : (
@@ -380,10 +380,10 @@ export default function Chat() {
               return (
                 <div key={msg.id} className="message-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start', position: 'relative', width: '100%' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: isMine ? 'hsl(var(--accent-primary))' : 'hsl(var(--text-secondary))' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: isMine ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
                       {isMine ? 'Você' : msg.senderName}
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: 'hsl(var(--text-muted))' }}>{msg.time}</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{msg.time}</span>
                   </div>
 
                   {/* Reactions Popover */}
@@ -397,7 +397,7 @@ export default function Chat() {
 
                   <div style={{ 
                     padding: '0.75rem 1rem', 
-                    background: isMine ? 'hsl(var(--accent-primary))' : 'hsl(var(--bg-secondary))',
+                    background: isMine ? 'var(--accent-primary)' : 'var(--bg-secondary)',
                     color: '#fff',
                     borderRadius: 'var(--radius-md)',
                     borderTopRightRadius: isMine ? '0' : 'var(--radius-md)',
@@ -427,7 +427,7 @@ export default function Chat() {
           )}
           {typingUser && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', width: 'fit-content', border: '1px solid rgba(255,255,255,0.04)', marginLeft: '12px' }}>
-              <span style={{ fontSize: '0.8rem', color: 'hsl(var(--text-secondary))' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                 <strong>{typingUser}</strong> está digitando
               </span>
               <div className="typing-dots">
@@ -443,14 +443,14 @@ export default function Chat() {
         {/* Input */}
         {uploadProgress !== null && (
           <div style={{ padding: '0.5rem 1.5rem', background: 'hsla(var(--accent-primary), 0.1)', borderTop: '1px solid hsla(var(--accent-primary), 0.2)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'hsl(var(--accent-primary-hover))' }}>Enviando {uploadFileName}...</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--accent-primary-hover)' }}>Enviando {uploadFileName}...</span>
             <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${uploadProgress}%`, background: 'hsl(var(--accent-primary))', transition: 'width 0.1s ease' }} />
+              <div style={{ height: '100%', width: `${uploadProgress}%`, background: 'var(--accent-primary)', transition: 'width 0.1s ease' }} />
             </div>
             <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{uploadProgress}%</span>
           </div>
         )}
-        <div style={{ padding: '1.5rem', borderTop: '1px solid hsl(var(--border))' }}>
+        <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border)' }}>
           <form onSubmit={handleSend} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
             <input 
               type="file" 
@@ -458,11 +458,11 @@ export default function Chat() {
               style={{ display: 'none' }} 
               onChange={handleFileChange} 
             />
-            <div style={{ flex: 1, background: 'hsl(var(--bg-secondary))', borderRadius: 'var(--radius-md)', padding: '0.5rem', display: 'flex', alignItems: 'flex-end', border: '1px solid hsl(var(--border))' }}>
+            <div style={{ flex: 1, background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: '0.5rem', display: 'flex', alignItems: 'flex-end', border: '1px solid var(--border)' }}>
               <button 
                 type="button" 
                 className="btn" 
-                style={{ padding: '0.5rem', color: 'hsl(var(--text-muted))' }}
+                style={{ padding: '0.5rem', color: 'var(--text-muted)' }}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Paperclip size={20} />
@@ -475,7 +475,7 @@ export default function Chat() {
                 style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', padding: '0.5rem', outline: 'none', resize: 'none', height: '40px', fontFamily: 'inherit' }}
                 disabled={!activeRoom}
               />
-              <button type="button" className="btn" style={{ padding: '0.5rem', color: 'hsl(var(--text-muted))' }}><Smile size={20} /></button>
+              <button type="button" className="btn" style={{ padding: '0.5rem', color: 'var(--text-muted)' }}><Smile size={20} /></button>
             </div>
             <button type="submit" className="btn btn-primary" style={{ padding: '0.8rem 1.2rem' }} disabled={!activeRoom}><Send size={18} /></button>
           </form>

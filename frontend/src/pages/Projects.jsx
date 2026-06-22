@@ -348,14 +348,14 @@ export default function Projects() {
                 {projects.map(p => <option key={p.id} value={p.id}>{p.code} - {p.name}</option>)}
               </select>
             ) : (
-              <span style={{ color: 'hsl(var(--text-muted))' }}>Nenhum projeto cadastrado</span>
+              <span style={{ color: 'var(--text-muted)' }}>Nenhum projeto cadastrado</span>
             )}
           </div>
-          {activeProject && <p style={{ color: 'hsl(var(--text-secondary))', margin: 0 }}>{activeProject.description}</p>}
+          {activeProject && <p style={{ color: 'var(--text-secondary)', margin: 0 }}>{activeProject.description}</p>}
         </div>
         
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{ display: 'flex', background: 'hsl(var(--bg-secondary))', padding: '0.25rem', borderRadius: 'var(--radius-md)' }}>
+          <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '0.25rem', borderRadius: 'var(--radius-md)' }}>
             <button className={`btn ${view === 'kanban' ? 'btn-primary' : ''}`} style={{ padding: '0.5rem', background: view === 'kanban' ? '' : 'transparent', border: 'none' }} onClick={() => setView('kanban')} title="Kanban"><LayoutGrid size={18} /></button>
             <button className={`btn ${view === 'list' ? 'btn-primary' : ''}`} style={{ padding: '0.5rem', background: view === 'list' ? '' : 'transparent', border: 'none' }} onClick={() => setView('list')} title="Lista"><ListIcon size={18} /></button>
             <button className={`btn ${view === 'gantt' ? 'btn-primary' : ''}`} style={{ padding: '0.5rem', background: view === 'gantt' ? '' : 'transparent', border: 'none' }} onClick={() => setView('gantt')} title="Gantt"><CalendarIcon size={18} /></button>
@@ -385,10 +385,10 @@ export default function Projects() {
                 >
                   <div style={{ padding: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255, 255, 255, 0.01)' }}>
                     <h3 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'hsl(var(--accent-primary))' }} />
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-primary)' }} />
                       {listName}
                     </h3>
-                    <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600, color: 'hsl(var(--text-secondary))' }}>
+                    <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                       {columnTasks.length}
                     </span>
                   </div>
@@ -424,7 +424,7 @@ export default function Projects() {
                               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: prio.color, boxShadow: `0 0 5px ${prio.color}` }} />
                               {prio.label}
                             </span>
-                            <div style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                               {task.deadline ? new Date(task.deadline).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Sem prazo'}
                             </div>
                           </div>
@@ -441,9 +441,9 @@ export default function Projects() {
                               : 'linear-gradient(90deg, var(--accent-primary), var(--accent-primary-hover))';
                             return (
                               <div style={{ marginTop: '0.75rem', marginBottom: '0.75rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'hsl(var(--text-muted))', marginBottom: '0.25rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
                                   <span>Subtarefas ({done}/{total})</span>
-                                  <span style={{ fontWeight: 600, color: progress === 100 ? '#10b981' : 'hsl(var(--text-secondary))' }}>{progress}%</span>
+                                  <span style={{ fontWeight: 600, color: progress === 100 ? '#10b981' : 'var(--text-secondary)' }}>{progress}%</span>
                                 </div>
                                 <div className="subtask-bar-container">
                                   <div className="subtask-bar-fill" style={{ width: `${progress}%`, background: progressGradient, boxShadow: progress === 100 ? '0 0 6px rgba(16,185,129,0.3)' : 'none' }} />
@@ -453,8 +453,8 @@ export default function Projects() {
                           })()}
 
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                            <div style={{ fontSize: '0.72rem', color: 'hsl(var(--text-secondary))', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 500 }}>
-                              <CheckSquare size={13} color="hsl(var(--text-muted))" /> 
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 500 }}>
+                              <CheckSquare size={13} color="var(--text-muted)" /> 
                               <span>{task.checklist?.filter(c => c.completed).length || 0}/{task.checklist?.length || 0}</span>
                             </div>
                             <div className="avatar-badge" style={{ background: avatarBg }}>
@@ -475,7 +475,7 @@ export default function Projects() {
           <div className="glass-card" style={{ width: '100%', padding: '1.5rem', overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid hsl(var(--border))', textAlign: 'left', color: 'hsl(var(--text-secondary))' }}>
+                <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
                   <th style={{ padding: '1rem 0' }}>Título da Tarefa</th>
                   <th style={{ padding: '1rem 0' }}>Fase / Lista</th>
                   <th style={{ padding: '1rem 0' }}>Prioridade</th>
@@ -493,7 +493,7 @@ export default function Projects() {
                     <td style={{ padding: '1rem 0' }}>{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'Sem prazo'}</td>
                     <td style={{ padding: '1rem 0' }}>{teamMembers.find(m => m.id === task.assigneeId)?.name || 'Não atribuído'}</td>
                     <td style={{ padding: '1rem 0' }} onClick={e => e.stopPropagation()}>
-                      <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', border: 'none', color: 'hsl(var(--danger))' }} onClick={() => handleDeleteTask(task.id)}><Trash2 size={16}/></button>
+                      <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', border: 'none', color: 'var(--danger)' }} onClick={() => handleDeleteTask(task.id)}><Trash2 size={16}/></button>
                     </td>
                   </tr>
                 ))}
@@ -505,7 +505,7 @@ export default function Projects() {
         {view === 'gantt' && (
           <div className="glass-card" style={{ width: '100%', padding: '2rem', overflowX: 'auto' }}>
             {projectTasks.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem', color: 'hsl(var(--text-muted))' }}>
+              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                 <CalendarIcon size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
                 <h3>Sem Tarefas</h3>
                 <p>Crie tarefas com datas de início e prazo para visualizar o cronograma.</p>
@@ -533,9 +533,9 @@ export default function Projects() {
                 <div style={{ minWidth: '800px' }}>
                   <h3 style={{ marginBottom: '1.5rem' }}>Cronograma de Atividades</h3>
                   
-                  <div style={{ border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius-md)', background: 'hsl(var(--bg-secondary))', overflow: 'hidden' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr', borderBottom: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-card))' }}>
-                      <div style={{ padding: '1rem', fontWeight: 'bold', borderRight: '1px solid hsl(var(--border))' }}>Tarefa</div>
+                  <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr', borderBottom: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+                      <div style={{ padding: '1rem', fontWeight: 'bold', borderRight: '1px solid var(--border)' }}>Tarefa</div>
                       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${totalDays}, minmax(40px, 1fr))`, overflowX: 'auto' }}>
                         {dayHeaders.map((date, idx) => {
                           const isWeekend = date.getDay() === 0 || date.getDay() === 6;
@@ -547,7 +547,7 @@ export default function Projects() {
                                 textAlign: 'center', 
                                 fontSize: '0.75rem', 
                                 borderRight: '1px solid hsla(var(--border), 0.5)',
-                                color: isWeekend ? 'hsl(var(--text-muted))' : 'hsl(var(--text-secondary))',
+                                color: isWeekend ? 'var(--text-muted)' : 'var(--text-secondary)',
                                 background: isWeekend ? 'hsla(var(--border), 0.1)' : 'transparent'
                               }}
                             >
@@ -582,9 +582,9 @@ export default function Projects() {
                           }}
                           onClick={() => setSelectedTask(task)}
                         >
-                          <div style={{ padding: '1rem', borderRight: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-card))' }}>
+                          <div style={{ padding: '1rem', borderRight: '1px solid var(--border)', background: 'var(--bg-card)' }}>
                             <div style={{ fontWeight: '500', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{task.title}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                               De: {taskStart.toLocaleDateString()} Até: {taskEnd.toLocaleDateString()}
                             </div>
                           </div>
@@ -598,7 +598,7 @@ export default function Projects() {
                               style={{ 
                                 gridColumnStart: startOffset + 1, 
                                 gridColumnEnd: Math.min(totalDays + 1, startOffset + duration + 1),
-                                background: 'linear-gradient(90deg, hsl(var(--accent-primary)), hsl(var(--accent-primary-hover)))',
+                                background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-primary-hover))',
                                 height: '32px',
                                 borderRadius: 'var(--radius-sm)',
                                 display: 'flex',
@@ -718,9 +718,9 @@ export default function Projects() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {taskChecklist.map((item, idx) => (
-                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: 'hsl(var(--bg-secondary))', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem' }}>
+                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem' }}>
                       <span>{item.text}</span>
-                      <button type="button" style={{ border: 'none', background: 'transparent', color: 'hsl(var(--danger))', cursor: 'pointer' }} onClick={() => setTaskChecklist(taskChecklist.filter((_, i) => i !== idx))}>Remover</button>
+                      <button type="button" style={{ border: 'none', background: 'transparent', color: 'var(--danger)', cursor: 'pointer' }} onClick={() => setTaskChecklist(taskChecklist.filter((_, i) => i !== idx))}>Remover</button>
                     </div>
                   ))}
                 </div>
@@ -789,7 +789,7 @@ export default function Projects() {
                   </div>
                 </div>
                 
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem', borderTop: '1px solid hsl(var(--border))', paddingTop: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
                   <button type="button" className="btn btn-secondary" onClick={() => setIsEditing(false)}>Cancelar</button>
                   <button type="submit" className="btn btn-primary">Salvar Alterações</button>
                 </div>
@@ -802,7 +802,7 @@ export default function Projects() {
                 </div>
 
                 <h2 style={{ marginBottom: '0.5rem' }}>{selectedTask.title}</h2>
-                <p style={{ color: 'hsl(var(--text-secondary))', marginBottom: '1.5rem' }}>{selectedTask.description || 'Sem descrição.'}</p>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>{selectedTask.description || 'Sem descrição.'}</p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem', padding: '1rem', background: 'hsla(var(--border), 0.3)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
                   <div>
@@ -813,7 +813,7 @@ export default function Projects() {
                     <div style={{ marginBottom: '0.5rem' }}><strong>Responsável:</strong> {teamMembers.find(m => m.id === selectedTask.assigneeId)?.name || 'Não atribuído'}</div>
                     <div><strong>Editar Responsável:</strong>
                       <select 
-                        style={{ background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', color: '#fff', borderRadius: '4px', marginLeft: '0.5rem', padding: '2px 5px' }}
+                        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: '#fff', borderRadius: '4px', marginLeft: '0.5rem', padding: '2px 5px' }}
                         value={selectedTask.assigneeId || ''} 
                         onChange={e => handleUpdateTaskDetails({ ...selectedTask, assigneeId: e.target.value })}
                       >
@@ -830,7 +830,7 @@ export default function Projects() {
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
                     {(selectedTask.checklist || []).map(item => (
-                      <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between', padding: '0.5rem', background: 'hsl(var(--bg-secondary))', borderRadius: 'var(--radius-sm)' }}>
+                      <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <input 
                             type="checkbox" 
@@ -838,9 +838,9 @@ export default function Projects() {
                             onChange={() => toggleCheckItemInSelected(item.id)} 
                             style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                           />
-                          <span style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? 'hsl(var(--text-muted))' : '#fff' }}>{item.text}</span>
+                          <span style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? 'var(--text-muted)' : '#fff' }}>{item.text}</span>
                         </div>
-                        <button style={{ border: 'none', background: 'transparent', color: 'hsl(var(--danger))', cursor: 'pointer', fontSize: '0.75rem' }} onClick={() => deleteCheckItemInSelected(item.id)}>Excluir</button>
+                        <button style={{ border: 'none', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.75rem' }} onClick={() => deleteCheckItemInSelected(item.id)}>Excluir</button>
                       </div>
                     ))}
                   </div>
@@ -851,7 +851,7 @@ export default function Projects() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'space-between', borderTop: '1px solid hsl(var(--border))', paddingTop: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
                   <button className="btn btn-danger" onClick={() => handleDeleteTask(selectedTask.id)}><Trash2 size={16} /> Excluir Tarefa</button>
                   <div style={{ display: 'flex', gap: '1rem' }}>
                     <button className="btn btn-secondary" onClick={startEditing}>Editar Atividade</button>

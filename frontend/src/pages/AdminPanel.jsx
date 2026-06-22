@@ -214,7 +214,7 @@ export default function AdminPanel() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ marginBottom: '0.25rem' }}>Administração do Sistema</h1>
-        <p style={{ color: 'hsl(var(--text-secondary))' }}>Configurações globais, segurança e backups.</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Configurações globais, segurança e backups.</p>
       </div>
 
       <div style={{ display: 'flex', gap: '2rem', flex: 1, overflow: 'hidden' }}>
@@ -283,7 +283,7 @@ export default function AdminPanel() {
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid hsl(var(--border))', textAlign: 'left', color: 'hsl(var(--text-secondary))' }}>
+                  <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
                     <th style={{ padding: '1rem 0' }}>Data/Hora</th>
                     <th style={{ padding: '1rem 0' }}>Usuário</th>
                     <th style={{ padding: '1rem 0' }}>Ação</th>
@@ -294,15 +294,15 @@ export default function AdminPanel() {
                 <tbody>
                   {logs.map(log => (
                     <tr key={log.id} style={{ borderBottom: '1px solid hsla(var(--border), 0.5)' }}>
-                      <td style={{ padding: '1rem 0', color: 'hsl(var(--text-secondary))' }}>{new Date(log.timestamp).toLocaleString()}</td>
+                      <td style={{ padding: '1rem 0', color: 'var(--text-secondary)' }}>{new Date(log.timestamp).toLocaleString()}</td>
                       <td style={{ padding: '1rem 0', fontWeight: '500' }}>{log.userName}</td>
                       <td style={{ padding: '1rem 0' }}>
                         <span className={`badge ${log.action === 'login' ? 'badge-info' : log.action === 'create' ? 'badge-success' : log.action === 'delete' ? 'badge-danger' : 'badge-warning'}`}>
                           {log.action}
                         </span>
                       </td>
-                      <td style={{ padding: '1rem 0' }}>{log.entity} <br/><span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>{log.details}</span></td>
-                      <td style={{ padding: '1rem 0', fontFamily: 'monospace', color: 'hsl(var(--text-muted))' }}>{log.ip}</td>
+                      <td style={{ padding: '1rem 0' }}>{log.entity} <br/><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{log.details}</span></td>
+                      <td style={{ padding: '1rem 0', fontFamily: 'monospace', color: 'var(--text-muted)' }}>{log.ip}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -315,7 +315,7 @@ export default function AdminPanel() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h2 style={{ fontSize: '1.25rem' }}>Configuração de E-mails (SMTP/IMAP)</h2>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  {saveStatus && <span style={{ fontSize: '0.9rem', color: 'hsl(var(--accent-primary))' }}>{saveStatus}</span>}
+                  {saveStatus && <span style={{ fontSize: '0.9rem', color: 'var(--accent-primary)' }}>{saveStatus}</span>}
                   <button className="btn btn-secondary" onClick={handleTestConnection}>Testar Conexão</button>
                   <button className="btn btn-primary" onClick={handleSaveEmailSettings}>Salvar Configurações</button>
                 </div>
@@ -330,7 +330,7 @@ export default function AdminPanel() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                 
                 {/* SMTP */}
-                <div className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))' }}>
+                <div className="glass-panel" style={{ padding: '1.5rem', background: 'var(--bg-secondary)' }}>
                   <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Server size={18}/> Saída (SMTP)</h3>
                   <div className="input-group">
                     <label className="input-label">Servidor SMTP</label>
@@ -357,7 +357,7 @@ export default function AdminPanel() {
                 </div>
 
                 {/* IMAP */}
-                <div className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))' }}>
+                <div className="glass-panel" style={{ padding: '1.5rem', background: 'var(--bg-secondary)' }}>
                   <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Server size={18}/> Entrada (IMAP)</h3>
                   <div className="input-group">
                     <label className="input-label">Servidor IMAP</label>
@@ -393,35 +393,35 @@ export default function AdminPanel() {
                 <h2 style={{ fontSize: '1.25rem' }}>E-mails Simulados Enviados</h2>
                 <button className="btn btn-secondary" onClick={fetchData}>Atualizar</button>
               </div>
-              <p style={{ color: 'hsl(var(--text-secondary))', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
                 Estes são os e-mails que foram disparados pelas regras de automação configuradas no sistema.
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {emails.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '3rem', color: 'hsl(var(--text-muted))' }}>
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     Nenhum e-mail enviado ainda.
                   </div>
                 ) : (
                   emails.map(email => (
-                    <div key={email.id} className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))' }}>
+                    <div key={email.id} className="glass-panel" style={{ padding: '1.5rem', background: 'var(--bg-secondary)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <div>
-                          <strong>Para:</strong> <code style={{ color: 'hsl(var(--accent-primary))' }}>{email.to}</code>
+                          <strong>Para:</strong> <code style={{ color: 'var(--accent-primary)' }}>{email.to}</code>
                         </div>
-                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                           {new Date(email.sentAt || email.createdAt).toLocaleString()}
                         </span>
                       </div>
                       <h4 style={{ fontSize: '1rem', color: '#fff', marginBottom: '0.5rem' }}>{email.subject}</h4>
-                      <p style={{ fontSize: '0.9rem', color: 'hsl(var(--text-secondary))', whiteSpace: 'pre-wrap', background: 'hsla(var(--border), 0.3)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', margin: 0 }}>
+                      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', background: 'hsla(var(--border), 0.3)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', margin: 0 }}>
                         {email.body}
                       </p>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', fontSize: '0.75rem' }}>
-                        <span style={{ color: email.status === 'sent' || email.status === 'success' ? 'hsl(var(--success-light))' : 'hsl(var(--danger))' }}>
+                        <span style={{ color: email.status === 'sent' || email.status === 'success' ? 'var(--success-light)' : 'var(--danger)' }}>
                           Status: {email.status === 'sent' || email.status === 'success' ? '✔ Enviado' : '✖ Falhou'}
                         </span>
-                        <span style={{ color: 'hsl(var(--text-muted))' }}>ID: {email.id}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>ID: {email.id}</span>
                       </div>
                     </div>
                   ))
@@ -439,10 +439,10 @@ export default function AdminPanel() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {automations.map(auto => (
-                  <div key={auto.id} className="glass-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'hsl(var(--bg-secondary))' }}>
+                  <div key={auto.id} className="glass-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)' }}>
                     <div>
                       <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{auto.name}</h3>
-                      <p style={{ fontSize: '0.85rem', color: 'hsl(var(--text-secondary))', margin: 0 }}>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
                         Gatilho: <strong style={{ color: '#fff' }}>{auto.trigger}</strong> | Ação: <strong style={{ color: '#fff' }}>{auto.action}</strong>
                       </p>
                     </div>
@@ -469,32 +469,32 @@ export default function AdminPanel() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
                   <h2 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Segurança & Backups do PostgreSQL</h2>
-                  <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.85rem', margin: 0 }}>Políticas de backup diário e histórico de testes de restauração de desastre.</p>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>Políticas de backup diário e histórico de testes de restauração de desastre.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  {backupStatus && <span style={{ fontSize: '0.9rem', color: 'hsl(var(--accent-primary))' }}>{backupStatus}</span>}
+                  {backupStatus && <span style={{ fontSize: '0.9rem', color: 'var(--accent-primary)' }}>{backupStatus}</span>}
                   <button className="btn btn-primary" onClick={handleRunRestoreTest}><Database size={16} /> Validar Teste de Restauração</button>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
-                <div className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))', height: 'fit-content' }}>
+                <div className="glass-panel" style={{ padding: '1.5rem', background: 'var(--bg-secondary)', height: 'fit-content' }}>
                   <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Políticas Vigentes</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem' }}>
-                      <span style={{ color: 'hsl(var(--text-secondary))' }}>Frequência de Backup:</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Frequência de Backup:</span>
                       <strong>Diário (03:00 AM)</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem' }}>
-                      <span style={{ color: 'hsl(var(--text-secondary))' }}>Destino / Storage:</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Destino / Storage:</span>
                       <strong>Amazon S3 (modaverao-backups)</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem' }}>
-                      <span style={{ color: 'hsl(var(--text-secondary))' }}>Retenção:</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Retenção:</span>
                       <strong>30 dias</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem' }}>
-                      <span style={{ color: 'hsl(var(--text-secondary))' }}>Criptografia:</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>Criptografia:</span>
                       <strong>AES-256</strong>
                     </div>
                   </div>
@@ -504,17 +504,17 @@ export default function AdminPanel() {
                   <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Histórico de Validação de Restauração</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {backupTests.map(test => (
-                      <div key={test.id} className="glass-panel" style={{ padding: '1.25rem', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))' }}>
+                      <div key={test.id} className="glass-panel" style={{ padding: '1.25rem', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'hsl(var(--success-light))', fontWeight: '500', fontSize: '0.9rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success-light)', fontWeight: '500', fontSize: '0.9rem' }}>
                             <CheckCircle size={16} /> Restauração com Sucesso
                           </span>
-                          <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>{new Date(test.date).toLocaleString()}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(test.date).toLocaleString()}</span>
                         </div>
-                        <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', color: 'hsl(var(--text-secondary))' }}>
+                        <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                           {test.comment}
                         </p>
-                        <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>
+                        <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                           <span>Tamanho do Dump: <strong>{test.sizeMB} MB</strong></span>
                           <span>Verificado por: <strong>{test.verifiedBy}</strong></span>
                         </div>
@@ -532,18 +532,18 @@ export default function AdminPanel() {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 
-                <div className="glass-panel" style={{ padding: '1.5rem', background: 'hsl(var(--bg-secondary))' }}>
+                <div className="glass-panel" style={{ padding: '1.5rem', background: 'var(--bg-secondary)' }}>
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Configurações de Acesso</h3>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'hsl(var(--bg-card))', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)' }}>
                   <div>
                       <h4 style={{ fontSize: '0.95rem', margin: 0 }}>MFA (Autenticação de Dois Fatores)</h4>
-                      <p style={{ fontSize: '0.8rem', color: 'hsl(var(--text-secondary))', margin: 0 }}>Estrutura pronta para evolução. O segundo fator ainda deve ser conectado a um provedor real de código ou app autenticador.</p>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>Estrutura pronta para evolução. O segundo fator ainda deve ser conectado a um provedor real de código ou app autenticador.</p>
                   </div>
                     <span className="badge badge-warning">Planejado</span>
                 </div>
               </div>
 
-                <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
+                <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   <Shield size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
                   <h3>Matriz de Permissões Corporativas</h3>
                   <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
@@ -563,14 +563,14 @@ export default function AdminPanel() {
                 <h2 style={{ fontSize: '1.25rem' }}>Gestão de Usuários Corporativos</h2>
                 <button className="btn btn-secondary" onClick={fetchData}>Atualizar</button>
               </div>
-              <p style={{ color: 'hsl(var(--text-secondary))', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
                 Gerencie permissões (cargos) e o status das contas de funcionários cadastrados na sua organização.
               </p>
               
               <div className="table-responsive">
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid hsl(var(--border))', textAlign: 'left', color: 'hsl(var(--text-secondary))' }}>
+                    <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
                       <th style={{ padding: '1rem 0.5rem' }}>Nome Completo</th>
                       <th style={{ padding: '1rem 0.5rem' }}>E-mail</th>
                       <th style={{ padding: '1rem 0.5rem' }}>Cargo</th>
@@ -582,7 +582,7 @@ export default function AdminPanel() {
                     {users.map(u => (
                       <tr key={u.id} style={{ borderBottom: '1px solid hsla(var(--border), 0.5)' }}>
                         <td style={{ padding: '1rem 0.5rem', fontWeight: '500' }}>{u.name} {u.lastName}</td>
-                        <td style={{ padding: '1rem 0.5rem', color: 'hsl(var(--text-secondary))' }}>{u.email}</td>
+                        <td style={{ padding: '1rem 0.5rem', color: 'var(--text-secondary)' }}>{u.email}</td>
                         <td style={{ padding: '1rem 0.5rem' }}>
                           <span className="badge badge-info" style={{ textTransform: 'capitalize' }}>
                             {u.role?.replace('_', ' ')}
@@ -600,14 +600,14 @@ export default function AdminPanel() {
                               style={{ padding: '0.25rem 0.5rem', border: 'none', background: 'transparent' }}
                               onClick={() => handleEditUser(u)}
                             >
-                              <Edit size={16} color="hsl(var(--accent-primary))" />
+                              <Edit size={16} color="var(--accent-primary)" />
                             </button>
                             <button 
                               className="btn btn-secondary" 
                               style={{ padding: '0.25rem 0.5rem', border: 'none', background: 'transparent' }}
                               onClick={() => handleDeleteUser(u.id)}
                             >
-                              <Trash2 size={16} color="hsl(var(--danger))" />
+                              <Trash2 size={16} color="var(--danger)" />
                             </button>
                           </div>
                         </td>
@@ -615,7 +615,7 @@ export default function AdminPanel() {
                     ))}
                     {users.length === 0 && (
                       <tr>
-                        <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'hsl(var(--text-muted))' }}>Nenhum usuário encontrado.</td>
+                        <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Nenhum usuário encontrado.</td>
                       </tr>
                     )}
                   </tbody>
@@ -698,7 +698,7 @@ export default function AdminPanel() {
             
             <div style={{ marginBottom: '1.5rem' }}>
               <strong style={{ display: 'block', fontSize: '1rem', color: '#fff' }}>{userEditing.name} {userEditing.lastName}</strong>
-              <span style={{ fontSize: '0.85rem', color: 'hsl(var(--text-secondary))' }}>{userEditing.email}</span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{userEditing.email}</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

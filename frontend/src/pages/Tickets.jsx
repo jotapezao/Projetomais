@@ -3,9 +3,10 @@ import {
   Ticket as TicketIcon, Search, AlertCircle, Clock, CheckCircle, Plus, X,
   MessageSquare, Shield, Star, Download, Filter, RefreshCw, User, Tag,
   AlertTriangle, ZapOff, Activity, CheckSquare, Inbox, PlayCircle,
-  XCircle, RotateCcw, ChevronDown, Edit3, Save, ArrowRight
+  XCircle, RotateCcw, ChevronDown, Edit3, Save, ArrowRight, BookOpen
 } from 'lucide-react';
 import client from '../api/client';
+import { useNavigate } from 'react-router-dom';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ function StarRating({ value, onChange, readonly = false }) {
           key={n}
           size={20}
           fill={(hovered || value) >= n ? '#f59e0b' : 'transparent'}
-          color={(hovered || value) >= n ? '#f59e0b' : 'hsl(var(--text-muted))'}
+          color={(hovered || value) >= n ? '#f59e0b' : 'var(--text-muted)'}
           style={{ cursor: readonly ? 'default' : 'pointer', transition: 'all 0.15s' }}
           onMouseEnter={() => !readonly && setHovered(n)}
           onMouseLeave={() => !readonly && setHovered(0)}
@@ -130,7 +131,7 @@ function SLAProgressBar({ ticket }) {
 
   return (
     <div style={{ marginTop: '1rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '6px', color: 'hsl(var(--text-secondary))' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '6px', color: 'var(--text-secondary)' }}>
         <span>Progresso SLA</span>
         <span style={{ color: barColor, fontWeight: 700 }}>
           {isResolved ? (violated ? '🚨 SLA Violado' : '✅ SLA Cumprido') : `${progress}% consumido`}
@@ -146,7 +147,7 @@ function SLAProgressBar({ ticket }) {
           boxShadow: `0 0 8px ${barColor}55`
         }} />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginTop: '6px', color: 'hsl(var(--text-muted))' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginTop: '6px', color: 'var(--text-muted)' }}>
         <span>Abertura: {formatDate(created)}</span>
         <span>Prazo: {formatDate(limit)}</span>
       </div>
@@ -163,8 +164,8 @@ function KPICard({ label, value, icon: Icon, color, active, onClick, subtitle })
         flex: 1, minWidth: '150px',
         padding: '1.25rem',
         borderRadius: '16px',
-        background: active ? `${color}22` : 'hsl(var(--bg-card))',
-        border: `1.5px solid ${active ? color : 'hsl(var(--border))'}`,
+        background: active ? `${color}22` : 'var(--bg-card)',
+        border: `1.5px solid ${active ? color : 'var(--border)'}`,
         cursor: 'pointer',
         transition: 'all 0.2s',
         display: 'flex', flexDirection: 'column', gap: '0.5rem',
@@ -178,8 +179,8 @@ function KPICard({ label, value, icon: Icon, color, active, onClick, subtitle })
         <span style={{ fontSize: '1.8rem', fontWeight: 700, color, lineHeight: 1 }}>{value ?? '—'}</span>
       </div>
       <div>
-        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'hsl(var(--text-primary))' }}>{label}</div>
-        {subtitle && <div style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))' }}>{subtitle}</div>}
+        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
+        {subtitle && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{subtitle}</div>}
       </div>
     </div>
   );
@@ -187,6 +188,7 @@ function KPICard({ label, value, icon: Icon, color, active, onClick, subtitle })
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Tickets() {
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [categories, setCategories] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -468,7 +470,7 @@ export default function Tickets() {
   };
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem', gap: '1rem', color: 'hsl(var(--text-secondary))' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem', gap: '1rem', color: 'var(--text-secondary)' }}>
       <RefreshCw size={24} className="spin" /> Carregando Central de Chamados...
     </div>
   );
@@ -491,19 +493,19 @@ export default function Tickets() {
         .avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: white; flex-shrink: 0; }
         .comment-bubble { padding: 0.75rem 1rem; border-radius: 12px; font-size: 0.9rem; max-width: 95%; }
         .comment-staff { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.2); margin-left: auto; }
-        .comment-client { background: hsl(var(--bg-secondary)); border: 1px solid hsl(var(--border)); }
-        .timeline-dot { width: 10px; height: 10px; border-radius: 50%; background: hsl(var(--accent-primary)); flex-shrink: 0; margin-top: 4px; }
-        .inline-input { background: transparent; border: none; border-bottom: 2px solid hsl(var(--accent-primary)); color: inherit; font-size: inherit; font-weight: inherit; outline: none; width: 100%; padding: 2px 0; }
-        .select-field { background: hsl(var(--bg-card)); border: 1px solid hsl(var(--border)); color: #fff; border-radius: 8px; padding: 6px 10px; font-size: 0.82rem; outline: none; }
+        .comment-client { background: var(--bg-secondary); border: 1px solid var(--border); }
+        .timeline-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent-primary); flex-shrink: 0; margin-top: 4px; }
+        .inline-input { background: transparent; border: none; border-bottom: 2px solid var(--accent-primary); color: inherit; font-size: inherit; font-weight: inherit; outline: none; width: 100%; padding: 2px 0; }
+        .select-field { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; padding: 6px 10px; font-size: 0.82rem; outline: none; }
       `}</style>
 
       {/* ── HEADER ────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <TicketIcon size={28} color="hsl(var(--accent-primary))" /> Central de Chamados
+            <TicketIcon size={28} color="var(--accent-primary)" /> Central de Chamados
           </h1>
-          <p style={{ color: 'hsl(var(--text-secondary))', margin: 0 }}>Acompanhamento de incidentes, SLAs e suporte ao cliente.</p>
+          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Acompanhamento de incidentes, SLAs e suporte ao cliente.</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           {isAdmin && (
@@ -543,31 +545,31 @@ export default function Tickets() {
       {/* ── FILTER BAR ────────────────────────────────────────────────────── */}
       <div className="glass-panel" style={{ padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
         {/* Search */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'hsl(var(--bg-secondary))', borderRadius: '100px', padding: '0 1rem', border: '1px solid hsl(var(--border))' }}>
-          <Search size={16} color="hsl(var(--text-muted))" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '100px', padding: '0 1rem', border: '1px solid var(--border)' }}>
+          <Search size={16} color="var(--text-muted)" />
           <input type="text" placeholder="Pesquisar por assunto, ID ou solicitante..."
             value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-            style={{ flex: 1, background: 'transparent', border: 'none', padding: '0.65rem 0', outline: 'none', color: '#fff', fontSize: '0.9rem' }} />
-          {searchTerm && <X size={16} color="hsl(var(--text-muted))" style={{ cursor: 'pointer' }} onClick={() => setSearchTerm('')} />}
+            style={{ flex: 1, background: 'transparent', border: 'none', padding: '0.65rem 0', outline: 'none', color: 'var(--text-primary)', fontSize: '0.9rem' }} />
+          {searchTerm && <X size={16} color="var(--text-muted)" style={{ cursor: 'pointer' }} onClick={() => setSearchTerm('')} />}
         </div>
 
         {/* Filter Chips Row */}
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <Filter size={15} color="hsl(var(--text-muted))" />
+          <Filter size={15} color="var(--text-muted)" />
 
           {/* Status */}
           {['todos', 'novo', 'em_atendimento', 'resolvido', 'fechado'].map(s => {
             const cfg = s === 'todos' ? { label: 'Todos', color: '#60a5fa' } : STATUS_CONFIG[s];
             return (
               <span key={s} className={`filter-chip ${filterStatus === s ? 'active' : ''}`}
-                style={{ background: filterStatus === s ? `${cfg.color}20` : 'hsl(var(--bg-secondary))', color: filterStatus === s ? cfg.color : 'hsl(var(--text-secondary))', borderColor: filterStatus === s ? cfg.color : 'transparent' }}
+                style={{ background: filterStatus === s ? `${cfg.color}20` : 'var(--bg-secondary)', color: filterStatus === s ? cfg.color : 'var(--text-secondary)', borderColor: filterStatus === s ? cfg.color : 'transparent' }}
                 onClick={() => setFilterStatus(s)}>
                 {cfg.label}
               </span>
             );
           })}
 
-          <span style={{ width: '1px', height: '20px', background: 'hsl(var(--border))', margin: '0 4px' }} />
+          <span style={{ width: '1px', height: '20px', background: 'var(--border)', margin: '0 4px' }} />
 
           {/* Priority */}
           <select className="select-field" value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
@@ -606,8 +608,8 @@ export default function Tickets() {
           )}
         </div>
 
-        <div style={{ fontSize: '0.78rem', color: 'hsl(var(--text-muted))' }}>
-          Exibindo <strong style={{ color: 'hsl(var(--text-primary))' }}>{filteredTickets.length}</strong> de <strong style={{ color: 'hsl(var(--text-primary))' }}>{tickets.length}</strong> chamados
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+          Exibindo <strong style={{ color: 'var(--text-primary)' }}>{filteredTickets.length}</strong> de <strong style={{ color: 'var(--text-primary)' }}>{tickets.length}</strong> chamados
         </div>
       </div>
 
@@ -631,9 +633,9 @@ export default function Tickets() {
                 gap: '8px',
                 padding: '8px 16px',
                 borderRadius: '24px',
-                background: active ? opt.bg : 'rgba(15, 25, 50, 0.4)',
-                border: `1.5px solid ${active ? opt.color : 'rgba(255,255,255,0.06)'}`,
-                color: active ? '#fff' : 'hsl(var(--text-secondary))',
+                background: active ? opt.bg : 'var(--bg-secondary)',
+                border: `1.5px solid ${active ? opt.color : 'var(--border)'}`,
+                color: active ? opt.color : 'var(--text-secondary)',
                 cursor: 'pointer',
                 fontSize: '0.82rem',
                 fontWeight: active ? 700 : 500,
@@ -648,8 +650,8 @@ export default function Tickets() {
                 fontSize: '0.72rem',
                 padding: '2px 7px',
                 borderRadius: '10px',
-                background: opt.alert && opt.count > 0 ? '#ef4444' : 'rgba(255,255,255,0.08)',
-                color: opt.alert && opt.count > 0 ? '#fff' : 'hsl(var(--text-secondary))',
+                background: opt.alert && opt.count > 0 ? '#ef4444' : 'var(--bg-primary)',
+                color: opt.alert && opt.count > 0 ? '#fff' : 'var(--text-secondary)',
                 fontWeight: 600
               }}>
                 {opt.count}
@@ -685,10 +687,10 @@ export default function Tickets() {
                     </span>
                     <SLABadge ticket={ticket} />
                   </div>
-                  <p style={{ margin: '0 0 0.6rem 0', color: 'hsl(var(--text-secondary))', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                  <p style={{ margin: '0 0 0.6rem 0', color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5 }}>
                     {ticket.description?.slice(0, 120)}{ticket.description?.length > 120 ? '…' : ''}
                   </p>
-                  <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.78rem', color: 'hsl(var(--text-muted))', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.78rem', color: 'var(--text-muted)', flexWrap: 'wrap', alignItems: 'center' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Tag size={12} /> {ticket.category}
                     </span>
@@ -711,7 +713,7 @@ export default function Tickets() {
                         <Star size={12} fill="#f59e0b" /> {ticket.rating}/5
                       </span>
                     )}
-                    <span style={{ color: 'hsl(var(--text-muted))', fontFamily: 'monospace', fontSize: '0.72rem' }}>#{ticket.id.slice(-8)}</span>
+                    <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.72rem' }}>#{ticket.id.slice(-8)}</span>
                   </div>
                 </div>
 
@@ -740,10 +742,10 @@ export default function Tickets() {
         })}
 
         {filteredTickets.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '4rem 2rem', color: 'hsl(var(--text-muted))' }}>
+          <div style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-muted)' }}>
             <AlertCircle size={52} style={{ marginBottom: '1rem', opacity: 0.35 }} />
             <p style={{ fontSize: '1.05rem', margin: 0 }}>Nenhum chamado encontrado com os filtros atuais.</p>
-            {hasActiveFilters && <button onClick={clearFilters} style={{ marginTop: '1rem', background: 'none', border: 'none', color: 'hsl(var(--accent-primary))', cursor: 'pointer', fontSize: '0.9rem' }}>Limpar filtros</button>}
+            {hasActiveFilters && <button onClick={clearFilters} style={{ marginTop: '1rem', background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.9rem' }}>Limpar filtros</button>}
           </div>
         )}
       </div>
@@ -754,7 +756,7 @@ export default function Tickets() {
       {showCreateModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }}>
           <div className="glass-card" style={{ width: '100%', maxWidth: '620px', padding: '2rem', position: 'relative' }}>
-            <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }} onClick={() => setShowCreateModal(false)}>
+            <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => setShowCreateModal(false)}>
               <X size={22} />
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem' }}>
@@ -807,7 +809,7 @@ export default function Tickets() {
       {showCategoryModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }}>
           <div className="glass-card" style={{ width: '100%', maxWidth: '480px', padding: '2rem', position: 'relative' }}>
-            <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }} onClick={() => setShowCategoryModal(false)}><X size={22} /></button>
+            <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => setShowCategoryModal(false)}><X size={22} /></button>
             <h2 style={{ marginBottom: '1.5rem' }}>Gerenciar Categorias</h2>
             <form onSubmit={handleCreateCategory} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
               <input type="text" className="input-field" placeholder="Nome da nova categoria..." value={newCatName} onChange={e => setNewCatName(e.target.value)} required />
@@ -815,8 +817,8 @@ export default function Tickets() {
             </form>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '320px', overflowY: 'auto' }}>
               {categories.map(cat => (
-                <div key={cat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'hsl(var(--bg-secondary))', borderRadius: '10px' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Tag size={14} color="hsl(var(--text-muted))" /> {cat.name}</span>
+                <div key={cat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--bg-secondary)', borderRadius: '10px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Tag size={14} color="var(--text-muted)" /> {cat.name}</span>
                   <button style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '0.78rem' }} onClick={() => handleDeleteCategory(cat.id)}>Excluir</button>
                 </div>
               ))}
@@ -839,7 +841,7 @@ export default function Tickets() {
             <div className="glass-card" style={{ width: '100%', maxWidth: '900px', height: '92vh', display: 'flex', flexDirection: 'column', padding: 0, position: 'relative', overflow: 'hidden', borderRadius: '20px' }}>
 
               {/* Modal Header */}
-              <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', gap: '0.75rem', background: 'linear-gradient(135deg, rgba(99,102,241,0.08), transparent)' }}>
+              <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.75rem', background: 'linear-gradient(135deg, rgba(99,102,241,0.08), transparent)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     <span style={{ padding: '3px 12px', borderRadius: '100px', fontSize: '0.75rem', fontWeight: 600, background: `${sCfg.color}20`, color: sCfg.color, border: `1px solid ${sCfg.color}40`, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -851,7 +853,7 @@ export default function Tickets() {
                     <SLABadge ticket={selectedTicket} />
                     {selectedTicket.rating && <span style={{ color: '#f59e0b', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}><Star size={14} fill="#f59e0b" /> {selectedTicket.rating}/5</span>}
                   </div>
-                  <button style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid hsl(var(--border))', color: '#fff', cursor: 'pointer', borderRadius: '8px', padding: '6px' }} onClick={() => setSelectedTicket(null)}>
+                  <button style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '8px', padding: '6px' }} onClick={() => setSelectedTicket(null)}>
                     <X size={18} />
                   </button>
                 </div>
@@ -869,39 +871,39 @@ export default function Tickets() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <h2 style={{ margin: 0, fontSize: '1.3rem', lineHeight: 1.3 }}>{selectedTicket.subject}</h2>
                     {isStaff && (
-                      <button onClick={() => setEditingTitle(true)} style={{ background: 'none', border: 'none', color: 'hsl(var(--text-muted))', cursor: 'pointer', padding: '4px' }} title="Editar título">
+                      <button onClick={() => setEditingTitle(true)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }} title="Editar título">
                         <Edit3 size={16} />
                       </button>
                     )}
                   </div>
                 )}
 
-                <p style={{ color: 'hsl(var(--text-secondary))', margin: 0, fontSize: '0.9rem', lineHeight: 1.6 }}>{selectedTicket.description}</p>
+                <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem', lineHeight: 1.6 }}>{selectedTicket.description}</p>
               </div>
 
               {/* Modal Body */}
               <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.3fr 0.85fr', gap: 0, overflowY: 'hidden' }}>
 
                 {/* LEFT: Timeline + Comments */}
-                <div style={{ padding: '1.5rem 2rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.75rem', borderRight: '1px solid hsl(var(--border))' }}>
+                <div style={{ padding: '1.5rem 2rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.75rem', borderRight: '1px solid var(--border)' }}>
 
                   {/* Timeline */}
                   <div>
-                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
                       Histórico de Atividades
                     </h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', borderLeft: '2px solid hsl(var(--border))', paddingLeft: '1.25rem', marginLeft: '0.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', borderLeft: '2px solid var(--border)', paddingLeft: '1.25rem', marginLeft: '0.25rem' }}>
                       {[...(selectedTicket.history || [])].reverse().map((h, i) => {
                         const hCfg = HISTORY_ICONS[h.type] || HISTORY_ICONS.status_change;
                         return (
                           <div key={i} style={{ position: 'relative' }}>
-                            <div style={{ position: 'absolute', left: '-1.65rem', top: '0', width: '24px', height: '24px', borderRadius: '50%', background: 'hsl(var(--bg-card))', border: '2px solid hsl(var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
+                            <div style={{ position: 'absolute', left: '-1.65rem', top: '0', width: '24px', height: '24px', borderRadius: '50%', background: 'var(--bg-card)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
                               {hCfg.icon}
                             </div>
-                            <div style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))', marginBottom: '2px' }}>
-                              {formatDate(h.updatedAt)} · <span style={{ color: 'hsl(var(--accent-primary))' }}>{h.userName || 'Sistema'}</span>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                              {formatDate(h.updatedAt)} · <span style={{ color: 'var(--accent-primary)' }}>{h.userName || 'Sistema'}</span>
                             </div>
-                            <div style={{ fontSize: '0.875rem', color: 'hsl(var(--text-primary))' }}>{h.comment}</div>
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>{h.comment}</div>
                           </div>
                         );
                       })}
@@ -910,7 +912,7 @@ export default function Tickets() {
 
                   {/* Comments */}
                   <div>
-                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
                       <MessageSquare size={14} style={{ display: 'inline', marginRight: '6px' }} />
                       Respostas ({selectedTicket.comments?.length || 0})
                     </h4>
@@ -924,8 +926,8 @@ export default function Tickets() {
                                 <div className="avatar" style={{ background: isStaffComment ? '#6366f1' : '#475569', width: 22, height: 22, fontSize: '0.6rem' }}>
                                   {initials(c.userName)}
                                 </div>
-                                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: isStaffComment ? '#818cf8' : 'hsl(var(--text-secondary))' }}>{c.userName}</span>
-                                <span style={{ fontSize: '0.7rem', color: 'hsl(var(--text-muted))' }}>{formatDate(c.createdAt)}</span>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: isStaffComment ? '#818cf8' : 'var(--text-secondary)' }}>{c.userName}</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatDate(c.createdAt)}</span>
                               </div>
                               <div style={{ lineHeight: 1.6 }}>{c.content}</div>
                             </div>
@@ -933,7 +935,7 @@ export default function Tickets() {
                         );
                       })}
                       {(!selectedTicket.comments || selectedTicket.comments.length === 0) && (
-                        <p style={{ color: 'hsl(var(--text-muted))', fontSize: '0.85rem', margin: 0 }}>Nenhuma resposta ainda. Seja o primeiro a responder.</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>Nenhuma resposta ainda. Seja o primeiro a responder.</p>
                       )}
                     </div>
                     {!isResolved && (
@@ -948,18 +950,18 @@ export default function Tickets() {
 
                   {/* Rating Section */}
                   {(selectedTicket.status === 'resolvido' || selectedTicket.status === 'fechado') && (
-                    <div style={{ padding: '1.25rem', background: selectedTicket.rating ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.04)', borderRadius: '12px', border: `1px solid ${selectedTicket.rating ? 'rgba(245,158,11,0.3)' : 'hsl(var(--border))'}` }}>
+                    <div style={{ padding: '1.25rem', background: selectedTicket.rating ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.04)', borderRadius: '12px', border: `1px solid ${selectedTicket.rating ? 'rgba(245,158,11,0.3)' : 'var(--border)'}` }}>
                       <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.875rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Star size={15} color="#f59e0b" /> Avaliação do Atendimento
                       </h4>
                       {selectedTicket.rating ? (
                         <div>
                           <StarRating value={selectedTicket.rating} readonly />
-                          {selectedTicket.ratingFeedback && <p style={{ fontSize: '0.85rem', color: 'hsl(var(--text-secondary))', marginTop: '0.5rem', fontStyle: 'italic' }}>"{selectedTicket.ratingFeedback}"</p>}
+                          {selectedTicket.ratingFeedback && <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem', fontStyle: 'italic' }}>"{selectedTicket.ratingFeedback}"</p>}
                         </div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                          <p style={{ fontSize: '0.85rem', color: 'hsl(var(--text-muted))', margin: 0 }}>Como foi o seu atendimento?</p>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>Como foi o seu atendimento?</p>
                           <StarRating value={ratingValue} onChange={setRatingValue} />
                           {ratingValue > 0 && (
                             <>
@@ -982,7 +984,7 @@ export default function Tickets() {
                   {/* Actions */}
                   {isStaff && (
                     <div>
-                      <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))' }}>Ações Rápidas</h4>
+                      <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Ações Rápidas</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         {selectedTicket.status === 'novo' && (
                           <button className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', color: '#f59e0b', borderColor: '#f59e0b40' }}
@@ -1009,10 +1011,16 @@ export default function Tickets() {
                           </button>
                         )}
                         {isResolved && (
-                          <button className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
-                            onClick={() => handleStatusChange(selectedTicket.id, 'em_atendimento', 'Chamado reaberto.')}>
-                            <RotateCcw size={15} /> Reabrir Chamado
-                          </button>
+                          <>
+                            <button className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
+                              onClick={() => handleStatusChange(selectedTicket.id, 'em_atendimento', 'Chamado reaberto.')}>
+                              <RotateCcw size={15} /> Reabrir Chamado
+                            </button>
+                            <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)' }}
+                              onClick={() => navigate('/conhecimento', { state: { prefillFromTicket: selectedTicket } })}>
+                              <BookOpen size={15} /> Gerar Artigo de Ajuda
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -1021,10 +1029,10 @@ export default function Tickets() {
                   {/* Edit Fields */}
                   {isStaff && (
                     <div>
-                      <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))' }}>Editar Chamado</h4>
+                      <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Editar Chamado</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         <div>
-                          <label style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block', marginBottom: '4px' }}>Prioridade</label>
+                          <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Prioridade</label>
                           <select className="select-field" style={{ width: '100%' }} value={editPriority} onChange={e => setEditPriority(e.target.value)}>
                             <option value="baixa">🟢 Baixa</option>
                             <option value="media">🟡 Média</option>
@@ -1033,7 +1041,7 @@ export default function Tickets() {
                           </select>
                         </div>
                         <div>
-                          <label style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block', marginBottom: '4px' }}>Categoria</label>
+                          <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Categoria</label>
                           <select className="select-field" style={{ width: '100%' }} value={editCategory} onChange={e => setEditCategory(e.target.value)}>
                             {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                           </select>
@@ -1051,7 +1059,7 @@ export default function Tickets() {
                   {/* Operator Assignment */}
                   {isAdmin && (
                     <div>
-                      <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))' }}>Atribuição</h4>
+                      <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Atribuição</h4>
                       {selectedTicket.operatorName && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.5rem 0.75rem', background: 'rgba(99,102,241,0.1)', borderRadius: '8px', border: '1px solid rgba(99,102,241,0.2)' }}>
                           <div className="avatar" style={{ background: '#6366f1' }}>{initials(selectedTicket.operatorName)}</div>
@@ -1067,28 +1075,28 @@ export default function Tickets() {
 
                   {/* SLA */}
                   <div>
-                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))' }}>SLA</h4>
+                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>SLA</h4>
                     <SLAProgressBar ticket={selectedTicket} />
                   </div>
 
                   {/* Metadata */}
-                  <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.04)', borderRadius: '12px', border: '1px solid hsl(var(--border))', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))' }}>Informações</h4>
+                  <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.04)', borderRadius: '12px', border: '1px solid var(--border)', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Informações</h4>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'hsl(var(--text-muted))' }}>Solicitante</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Solicitante</span>
                       <span style={{ fontWeight: 600 }}>{selectedTicket.createdByName || '—'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'hsl(var(--text-muted))' }}>Abertura</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Abertura</span>
                       <span>{formatDate(selectedTicket.createdAt || selectedTicket.history?.[0]?.updatedAt)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'hsl(var(--text-muted))' }}>Categoria</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Categoria</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Tag size={12} /> {selectedTicket.category}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'hsl(var(--text-muted))' }}>ID do Registro</span>
-                      <code style={{ color: 'hsl(var(--accent-primary))', fontSize: '0.75rem' }}>#{selectedTicket.id.slice(-10)}</code>
+                      <span style={{ color: 'var(--text-muted)' }}>ID do Registro</span>
+                      <code style={{ color: 'var(--accent-primary)', fontSize: '0.75rem' }}>#{selectedTicket.id.slice(-10)}</code>
                     </div>
                   </div>
                 </div>

@@ -31,7 +31,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 function StatCard({ title, value, icon: Icon, colorClass, subtitle, trend }) {
   const isUp = trend?.startsWith('+') || trend?.startsWith('↗');
   const isDown = trend?.startsWith('-') || trend?.startsWith('↘');
-  const trendColor = isUp ? 'var(--success-light)' : isDown ? 'hsl(var(--danger))' : 'var(--accent-primary)';
+  const trendColor = isUp ? 'var(--success-light)' : isDown ? 'var(--danger)' : 'var(--accent-primary)';
   
   // Custom Sparkline paths
   const sparklineData = isDown 
@@ -45,7 +45,7 @@ function StatCard({ title, value, icon: Icon, colorClass, subtitle, trend }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</span>
         <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
-          <Icon size={18} style={{ color: colorClass === 'badge-danger' ? 'hsl(var(--danger))' : colorClass === 'badge-success' ? 'var(--success-light)' : 'var(--accent-primary)' }} />
+          <Icon size={18} style={{ color: colorClass === 'badge-danger' ? 'var(--danger)' : colorClass === 'badge-success' ? 'var(--success-light)' : 'var(--accent-primary)' }} />
         </div>
       </div>
       
@@ -381,10 +381,10 @@ export default function Dashboard() {
                   <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '0.75rem', fontWeight: '500' }}>
                       {t.title}
-                      {isOverdue && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: 'hsl(var(--danger))', fontWeight: 'bold' }}>⚠️ ATRASADA</span>}
+                      {isOverdue && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: 'var(--danger)', fontWeight: 'bold' }}>⚠️ ATRASADA</span>}
                     </td>
                     <td style={{ padding: '0.75rem' }}>{proj ? `${proj.code} - ${proj.name}` : 'Sem projeto'}</td>
-                    <td style={{ padding: '0.75rem', color: isOverdue ? 'hsl(var(--danger))' : 'inherit' }}>
+                    <td style={{ padding: '0.75rem', color: isOverdue ? 'var(--danger)' : 'inherit' }}>
                       {t.deadline ? new Date(t.deadline).toLocaleDateString() : 'Sem prazo'}
                     </td>
                     <td style={{ padding: '0.75rem' }}>{assignee ? `${assignee.name} ${assignee.lastName}` : 'Não atribuído'}</td>
@@ -431,7 +431,7 @@ export default function Dashboard() {
                     <td style={{ padding: '0.75rem' }}>
                       <span className={`badge ${t.priority === 'critica' ? 'badge-danger' : 'badge-warning'}`}>{t.priority}</span>
                     </td>
-                    <td style={{ padding: '0.75rem', color: isViolated ? 'hsl(var(--danger))' : 'inherit', fontWeight: isViolated ? 'bold' : 'normal' }}>
+                    <td style={{ padding: '0.75rem', color: isViolated ? 'var(--danger)' : 'inherit', fontWeight: isViolated ? 'bold' : 'normal' }}>
                       {new Date(t.slaEscalationTime).toLocaleString()} {isViolated && '🚨'}
                     </td>
                     <td style={{ padding: '0.75rem' }}>{t.operatorName || 'Sem técnico'}</td>
@@ -552,9 +552,9 @@ export default function Dashboard() {
                 <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>{tech.name}</td>
                   <td style={{ padding: '0.75rem' }}>{tech.total}</td>
-                  <td style={{ padding: '0.75rem', color: 'hsl(var(--warning))' }}>{tech.open}</td>
+                  <td style={{ padding: '0.75rem', color: 'var(--warning)' }}>{tech.open}</td>
                   <td style={{ padding: '0.75rem', color: 'var(--success-light)' }}>{tech.resolved}</td>
-                  <td style={{ padding: '0.75rem', color: tech.slaViolated > 0 ? 'hsl(var(--danger))' : 'inherit' }}>{tech.slaViolated}</td>
+                  <td style={{ padding: '0.75rem', color: tech.slaViolated > 0 ? 'var(--danger)' : 'inherit' }}>{tech.slaViolated}</td>
                 </tr>
               ))}
             </tbody>
@@ -737,7 +737,7 @@ export default function Dashboard() {
                 style={{ 
                   padding: '1.25rem', 
                   background: 'var(--bg-secondary)', 
-                  borderLeft: `4px solid ${action.type === 'danger' ? 'hsl(var(--danger))' : action.type === 'warning' ? '#f59e0b' : 'var(--success-light)'}` 
+                  borderLeft: `4px solid ${action.type === 'danger' ? 'var(--danger)' : action.type === 'warning' ? '#f59e0b' : 'var(--success-light)'}` 
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', alignItems: 'center' }}>

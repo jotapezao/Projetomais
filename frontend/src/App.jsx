@@ -91,7 +91,7 @@ const Sidebar = ({ user, onLogout, mobileOpen, onClose }) => {
               gap: '0.75rem',
               padding: '0.75rem 1rem',
               borderRadius: 'var(--radius-md)',
-              color: isActive(item.path) ? '#fff' : 'var(--text-secondary)',
+              color: isActive(item.path) ? 'var(--text-active)' : 'var(--text-secondary)',
               background: isActive(item.path) ? 'hsla(var(--accent-primary-val), 0.15)' : 'transparent',
               border: isActive(item.path) ? '1px solid hsla(var(--accent-primary-val), 0.3)' : '1px solid transparent',
               fontWeight: isActive(item.path) ? '600' : '400',
@@ -225,7 +225,7 @@ const Topbar = ({
           <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setShowNotifications(!showNotifications)}>
             <Bell size={20} color="var(--text-secondary)" />
             {notifications.length > 0 && (
-              <span style={{ position: 'absolute', top: '-4px', right: '-4px', width: '16px', height: '16px', background: 'hsl(var(--danger))', borderRadius: '50%', color: '#fff', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+              <span style={{ position: 'absolute', top: '-4px', right: '-4px', width: '16px', height: '16px', background: 'var(--danger)', borderRadius: '50%', color: '#fff', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                 {notifications.length}
               </span>
             )}

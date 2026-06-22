@@ -175,7 +175,7 @@ export default function Settings() {
   };
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem', gap: '1rem', color: 'hsl(var(--text-secondary))' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem', gap: '1rem', color: 'var(--text-secondary)' }}>
       <RefreshCw size={24} className="spin" /> Carregando Painel de Configurações...
     </div>
   );
@@ -190,7 +190,7 @@ export default function Settings() {
           padding: 10px 16px;
           border: none;
           background: transparent;
-          color: hsl(var(--text-secondary));
+          color: var(--text-secondary);
           cursor: pointer;
           font-size: 0.9rem;
           border-radius: 12px;
@@ -255,9 +255,9 @@ export default function Settings() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <SettingsIcon size={28} color="hsl(var(--accent-primary))" /> Painel de Configurações
+            <SettingsIcon size={28} color="var(--accent-primary)" /> Painel de Configurações
           </h1>
-          <p style={{ color: 'hsl(var(--text-secondary))', margin: 0 }}>Gerencie as regras do sistema, prazos de SLAs, segurança e preferências estéticas globais.</p>
+          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Gerencie as regras do sistema, prazos de SLAs, segurança e preferências estéticas globais.</p>
         </div>
       </div>
 
@@ -320,7 +320,7 @@ export default function Settings() {
               <div className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', maxWidth: '380px', textAlign: 'center', border: '1.5px solid rgba(245, 158, 11, 0.3)' }}>
                 <Lock size={32} color="#f59e0b" />
                 <h3 style={{ margin: 0, fontSize: '1rem', color: '#fff' }}>Apenas Leitura</h3>
-                <p style={{ margin: 0, fontSize: '0.82rem', color: 'hsl(var(--text-secondary))' }}>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                   Suas credenciais corporativas permitem visualizar os parâmetros de configuração do sistema, porém a edição é restrita a administradores.
                 </p>
               </div>
@@ -372,7 +372,7 @@ export default function Settings() {
                     Permitir cadastro livre de novos funcionários da corporação
                   </label>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: 'hsl(var(--text-muted))', margin: 0 }}>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
                   Nota: Usuários que se cadastram automaticamente são designados por padrão como membros e restringidos ao domínio institucional @modaverao.com.br.
                 </p>
 
@@ -437,7 +437,7 @@ export default function Settings() {
               <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <h3 className="settings-section-title">Central de Chamados & Regras de SLA</h3>
 
-                <h4 style={{ fontSize: '0.85rem', color: 'hsl(var(--text-secondary))', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0.5rem 0' }}>Prazos Limites de Resolução (SLA em horas)</h4>
+                <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0.5rem 0' }}>Prazos Limites de Resolução (SLA em horas)</h4>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                   <div className="input-group">
@@ -543,7 +543,7 @@ export default function Settings() {
                     onChange={e => setGeminiApiKey(e.target.value)} 
                     disabled={!isAdmin} 
                   />
-                  <p style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
                     Utilizado para habilitar o processamento real em linguagem natural do modelo Gemini RAG. Se deixado vazio, usará heurísticas locais de contingência.
                   </p>
                 </div>
@@ -552,14 +552,14 @@ export default function Settings() {
                   <div className="input-group">
                     <label className="input-label">Atraso de Resposta Simulado (ms)</label>
                     <input type="number" className="input-field" min="0" max="10000" step="500" value={aiTypingDelay} onChange={e => setAiTypingDelay(e.target.value)} disabled={!isAdmin} required />
-                    <p style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
                       Tempo de simulação de digitação antes de responder (Ex: 1500ms).
                     </p>
                   </div>
                   <div className="input-group">
                     <label className="input-label">Máx. Perguntas Investigativas por Turno</label>
                     <input type="number" className="input-field" min="1" max="10" value={aiMaxQuestions} onChange={e => setAiMaxQuestions(e.target.value)} disabled={!isAdmin} required />
-                    <p style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
                       Limite máximo de perguntas diagnósticas que a IA pode fazer de cada vez.
                     </p>
                   </div>
