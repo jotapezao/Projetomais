@@ -237,7 +237,7 @@ Para abrir chamado, inclua em "actions":
   }
 }
 
-Não crie chamados para dúvidas informativas resolvidas pela base de conhecimento.\`;
+Não crie chamados para dúvidas informativas resolvidas pela base de conhecimento.`;
 
       const model = localGenAI.getGenerativeModel({
         model: "gemini-2.5-flash",
