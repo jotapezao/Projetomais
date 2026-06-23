@@ -229,8 +229,8 @@ export default function Tickets() {
   const [ratingFeedback, setRatingFeedback] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
 
-  const isAdmin = user && ['super_admin', 'admin', 'gestor'].includes(user.role);
-  const isStaff = user && ['super_admin', 'admin', 'gestor', 'coordenador', 'operador'].includes(user.role);
+  const isAdmin = user && ['super_admin', 'admin', 'gestor', 'system_admin', 'team_admin'].includes(user.role);
+  const isStaff = user && ['super_admin', 'admin', 'gestor', 'coordenador', 'operador', 'system_admin', 'team_admin', 'channel_admin'].includes(user.role);
 
   const loadAll = useCallback(async () => {
     try {
@@ -420,22 +420,26 @@ export default function Tickets() {
     setSavingEdit(false);
   };
 
-  const handleAssignOperator = async (opId) => {
-    if (!selectedTicket) return;
+  const handleAssignOperator = async (ticketId, opId) => {
+    const targetTicket = tickets.find(t => t.id === ticketId) || selectedTicket;
+    if (!targetTicket) return;
     const op = teamMembers.find(m => m.id === opId);
     const operatorName = op ? `${op.name} ${op.lastName}` : null;
     const updated = {
-      ...selectedTicket, operatorId: opId || null, operatorName: operatorName,
-      history: [...(selectedTicket.history || []), {
-        status: selectedTicket.status, type: 'assigned',
+      ...targetTicket, operatorId: opId || null, operatorName: operatorName,
+      history: [...(targetTicket.history || []), {
+        status: targetTicket.status, type: 'assigned',
         updatedAt: new Date().toISOString(), userId: user.id, userName: user.name,
         comment: opId ? `Chamado atribuído para ${operatorName}` : 'Atribuição removida'
       }]
     };
     try {
-      const res = await client.put(`/tickets/${selectedTicket.id}`, updated);
-      setSelectedTicket(res.data);
+      const res = await client.put(`/tickets/${targetTicket.id}`, updated);
+      if (selectedTicket?.id === targetTicket.id) {
+        setSelectedTicket(res.data);
+      }
       setTickets(prev => prev.map(t => t.id === res.data.id ? res.data : t));
+      await loadAll();
     } catch (err) { console.error(err); }
   };
 
@@ -718,21 +722,33 @@ export default function Tickets() {
                 </div>
 
                 {/* Quick Actions */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end', minWidth: '130px' }}>
                   <button className="btn btn-secondary" onClick={() => setSelectedTicket(ticket)}
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', width: '100%', justifyContent: 'center' }}>
                     <ArrowRight size={14} /> Abrir
                   </button>
+                  {isStaff && ticket.status !== 'resolvido' && ticket.status !== 'fechado' && ticket.operatorId !== user?.id && (
+                    <button className="btn btn-secondary" onClick={() => handleAssignOperator(ticket.id, user?.id)}
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', color: '#818cf8', borderColor: '#818cf840', width: '100%', justifyContent: 'center' }}>
+                      <User size={14} /> Assumir
+                    </button>
+                  )}
                   {ticket.status === 'novo' && isStaff && (
                     <button className="btn btn-secondary" onClick={() => handleStatusChange(ticket.id, 'em_atendimento', 'Atendimento iniciado.')}
-                      style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', color: '#f59e0b', borderColor: '#f59e0b40' }}>
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', color: '#f59e0b', borderColor: '#f59e0b40', width: '100%', justifyContent: 'center' }}>
                       <PlayCircle size={14} /> Iniciar
                     </button>
                   )}
                   {ticket.status !== 'resolvido' && ticket.status !== 'fechado' && isStaff && (
                     <button className="btn btn-primary" onClick={() => handleStatusChange(ticket.id, 'resolvido', 'Chamado resolvido pelo operador.')}
-                      style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', background: '#22c55e20', color: '#22c55e', border: '1px solid #22c55e40', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', background: '#22c55e20', color: '#22c55e', border: '1px solid #22c55e40', display: 'flex', alignItems: 'center', gap: '6px', width: '100%', justifyContent: 'center' }}>
                       <CheckCircle size={14} /> Resolver
+                    </button>
+                  )}
+                  {ticket.status !== 'fechado' && isStaff && (
+                    <button className="btn btn-secondary" onClick={() => handleStatusChange(ticket.id, 'fechado', 'Chamado finalizado pelo operador.')}
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', color: '#ef4444', borderColor: '#ef444440', display: 'flex', alignItems: 'center', gap: '6px', width: '100%', justifyContent: 'center' }}>
+                      <XCircle size={14} /> Finalizar
                     </button>
                   )}
                 </div>
@@ -1004,10 +1020,10 @@ export default function Tickets() {
                             <CheckCircle size={15} /> Resolver Chamado
                           </button>
                         )}
-                        {selectedTicket.status === 'resolvido' && (
-                          <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
-                            onClick={() => handleStatusChange(selectedTicket.id, 'fechado', 'Chamado fechado e arquivado.')}>
-                            <XCircle size={15} /> Fechar Chamado
+                        {selectedTicket.status !== 'fechado' && (
+                          <button className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', color: '#ef4444', borderColor: '#ef444440' }}
+                            onClick={() => handleStatusChange(selectedTicket.id, 'fechado', 'Chamado finalizado pelo operador.')}>
+                            <XCircle size={15} /> Finalizar Chamado
                           </button>
                         )}
                         {isResolved && (
@@ -1057,7 +1073,7 @@ export default function Tickets() {
                   )}
 
                   {/* Operator Assignment */}
-                  {isAdmin && (
+                  {isStaff && (
                     <div>
                       <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Atribuição</h4>
                       {selectedTicket.operatorName && (
@@ -1066,10 +1082,19 @@ export default function Tickets() {
                           <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{selectedTicket.operatorName}</span>
                         </div>
                       )}
-                      <select className="select-field" style={{ width: '100%' }} value={selectedTicket.operatorId || ''} onChange={e => handleAssignOperator(e.target.value)}>
-                        <option value="">Sem atribuição</option>
-                        {teamMembers.map(m => <option key={m.id} value={m.id}>{m.name} {m.lastName}</option>)}
-                      </select>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <select className="select-field" style={{ flex: 1 }} value={selectedTicket.operatorId || ''} onChange={e => handleAssignOperator(selectedTicket.id, e.target.value)}>
+                          <option value="">Sem atribuição</option>
+                          {teamMembers
+                            .filter(m => ['super_admin', 'admin', 'gestor', 'coordenador', 'operador', 'system_admin', 'team_admin', 'channel_admin'].includes(m.role))
+                            .map(m => <option key={m.id} value={m.id}>{m.name} {m.lastName} ({m.role?.replace('_', ' ')})</option>)}
+                        </select>
+                        {selectedTicket.operatorId !== user?.id && (
+                          <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} onClick={() => handleAssignOperator(selectedTicket.id, user?.id)}>
+                            Atribuir a mim
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
 

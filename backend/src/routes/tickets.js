@@ -12,7 +12,7 @@ router.get('/stats', async (req, res) => {
     const user = await dbService.getById('users', req.user.id);
 
     let scoped = tickets;
-    if (!['super_admin', 'admin', 'gestor', 'coordenador', 'operador'].includes(user.role)) {
+    if (!['super_admin', 'admin', 'gestor', 'coordenador', 'operador', 'system_admin', 'team_admin', 'channel_admin'].includes(user.role)) {
       scoped = tickets.filter(t => t.companyId === user.companyId);
     }
 
@@ -75,7 +75,7 @@ router.get('/', async (req, res) => {
     const tickets = await dbService.getCollection('tickets');
     const user = await dbService.getById('users', req.user.id);
 
-    if (user.role === 'super_admin' || user.role === 'admin' || user.role === 'gestor' || user.role === 'coordenador' || user.role === 'operador') {
+    if (['super_admin', 'admin', 'gestor', 'coordenador', 'operador', 'system_admin', 'team_admin', 'channel_admin'].includes(user.role)) {
       return res.json(tickets);
     }
 
@@ -197,6 +197,25 @@ router.put('/:id', async (req, res) => {
     if (req.user.role !== 'super_admin' && existing.companyId !== req.user.companyId) {
       return res.status(403).json({ message: 'Você não tem permissão para editar este chamado.' });
     }
+
+    const STAFF_ROLES = ['super_admin', 'admin', 'gestor', 'coordenador', 'operador', 'system_admin', 'team_admin', 'channel_admin'];
+    const isStaff = STAFF_ROLES.includes(req.user.role);
+
+    // Validar se a atribuição de operador está sendo alterada
+    if (req.body.operatorId !== existing.operatorId) {
+      if (!isStaff) {
+        return res.status(403).json({ message: 'Apenas técnicos ou administradores podem atribuir chamados.' });
+      }
+
+      // Se estiver atribuindo para um operador, validar se este usuário existe e é técnico
+      if (req.body.operatorId) {
+        const targetUser = await dbService.getById('users', req.body.operatorId);
+        if (!targetUser || !STAFF_ROLES.includes(targetUser.role)) {
+          return res.status(400).json({ message: 'O usuário atribuído deve ser um técnico ou administrador.' });
+        }
+      }
+    }
+
     const updated = await dbService.update('tickets', req.params.id, req.body, req.user.id, req.user.name);
     if (!updated) return res.status(404).json({ message: 'Chamado não encontrado' });
     res.json(updated);
@@ -208,6 +227,12 @@ router.put('/:id', async (req, res) => {
 // ─── ALTERAR STATUS COM LOG ───────────────────────────────────────────────────
 router.patch('/:id/status', async (req, res) => {
   try {
+    const STAFF_ROLES = ['super_admin', 'admin', 'gestor', 'coordenador', 'operador', 'system_admin', 'team_admin', 'channel_admin'];
+    const isStaff = STAFF_ROLES.includes(req.user.role);
+    if (!isStaff) {
+      return res.status(403).json({ message: 'Apenas técnicos ou administradores podem alterar o status do chamado.' });
+    }
+
     const { status, comment } = req.body;
     const ticket = await dbService.getById('tickets', req.params.id);
     if (!ticket) return res.status(404).json({ message: 'Chamado não encontrado' });
@@ -282,7 +307,7 @@ router.post('/:id/comments', async (req, res) => {
       return res.status(403).json({ message: 'Você não tem permissão para comentar neste chamado.' });
     }
 
-    const isStaff = ['super_admin', 'admin', 'gestor', 'coordenador', 'operador'].includes(req.user.role);
+    const isStaff = ['super_admin', 'admin', 'gestor', 'coordenador', 'operador', 'system_admin', 'team_admin', 'channel_admin'].includes(req.user.role);
     const newComment = {
       id: `c-${Date.now()}`,
       userId: req.user.id,

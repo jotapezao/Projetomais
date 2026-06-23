@@ -36,7 +36,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Criar artigo
-router.post('/', requireRole(['super_admin', 'admin', 'gestor']), async (req, res) => {
+router.post('/', requireRole(['super_admin', 'admin', 'gestor', 'coordenador', 'operador']), async (req, res) => {
   try {
     const newArticle = await dbService.create('knowledge', {
       ...req.body,
@@ -51,7 +51,7 @@ router.post('/', requireRole(['super_admin', 'admin', 'gestor']), async (req, re
 });
 
 // Atualizar artigo
-router.put('/:id', requireRole(['super_admin', 'admin', 'gestor']), async (req, res) => {
+router.put('/:id', requireRole(['super_admin', 'admin', 'gestor', 'coordenador', 'operador']), async (req, res) => {
   try {
     const existing = await dbService.getById('knowledge', req.params.id);
     if (!existing) return res.status(404).json({ message: 'Artigo não encontrado' });

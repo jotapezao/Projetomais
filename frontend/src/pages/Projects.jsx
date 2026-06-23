@@ -265,7 +265,7 @@ export default function Projects() {
     }
   };
 
-  const isManager = currentUser && ['super_admin', 'admin', 'gestor'].includes(currentUser.role);
+  const isManager = currentUser && ['super_admin', 'admin', 'gestor', 'system_admin', 'team_admin'].includes(currentUser.role);
 
   if (loading) return <div style={{ padding: '2rem' }}>Carregando Projetos...</div>;
 

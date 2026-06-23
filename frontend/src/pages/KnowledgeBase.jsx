@@ -46,6 +46,7 @@ export default function KnowledgeBase() {
   // Form State
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('TI');
+  const [tags, setTags] = useState('');
   const [content, setContent] = useState('');
   const [editId, setEditId] = useState(null);
 
@@ -152,6 +153,7 @@ export default function KnowledgeBase() {
       const resDate = resEvent ? new Date(resEvent.updatedAt).toLocaleDateString() : new Date().toLocaleDateString();
       
       setContent(`### 📝 Descrição do Problema\n${ticket.description || 'Nenhuma descrição fornecida.'}\n\n### 💡 Solução Aplicada\n${resComment}\n\n---\n*Chamado de Origem: #${ticket.id} (${ticket.subject})*\n*Resolvido por: ${resBy} em ${resDate}*`);
+      setTags(ticket.category ? ticket.category.toLowerCase() : '');
       
       setIsEditing(true);
       setSelectedArticle(null);
@@ -161,13 +163,15 @@ export default function KnowledgeBase() {
     }
   }, [location.state]);
 
-  const canManage = ['super_admin', 'admin', 'gestor'].includes(userRole);
+  const canManage = ['super_admin', 'admin', 'gestor', 'coordenador', 'operador', 'system_admin', 'team_admin', 'channel_admin'].includes(userRole);
+  const canDelete = ['super_admin', 'admin', 'system_admin', 'team_admin'].includes(userRole);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title || !content) return;
 
-    const data = { title, category, content };
+    const tagList = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+    const data = { title, category, content, tags: tagList };
     try {
       if (editId) {
         await client.put(`/knowledge/${editId}`, data);
@@ -187,6 +191,7 @@ export default function KnowledgeBase() {
     setTitle(article.title);
     setCategory(article.category);
     setContent(article.content);
+    setTags(article.tags ? article.tags.join(', ') : '');
     setIsEditing(true);
   };
 
@@ -208,6 +213,7 @@ export default function KnowledgeBase() {
     setTitle('');
     setCategory('TI');
     setContent('');
+    setTags('');
   };
 
   const filteredArticles = articles.filter(art => {
@@ -385,6 +391,17 @@ export default function KnowledgeBase() {
             </div>
 
             <div className="input-group">
+              <label className="input-label">Tags (separadas por vírgula)</label>
+              <input 
+                type="text" 
+                className="input-field" 
+                value={tags} 
+                onChange={e => setTags(e.target.value)} 
+                placeholder="Ex: impressora, zebra, led vermelho, calibracao" 
+              />
+            </div>
+
+            <div className="input-group">
               <label className="input-label">Conteúdo do Artigo</label>
               <textarea 
                 className="input-field" 
@@ -417,17 +434,24 @@ export default function KnowledgeBase() {
                 <button className="btn btn-secondary" onClick={() => handleEdit(selectedArticle)}>
                   <Edit size={16} /> Editar
                 </button>
-                <button className="btn btn-danger" onClick={() => handleDelete(selectedArticle.id)}>
-                  <Trash2 size={16} /> Excluir
-                </button>
+                {canDelete && (
+                  <button className="btn btn-danger" onClick={() => handleDelete(selectedArticle.id)}>
+                    <Trash2 size={16} /> Excluir
+                  </button>
+                )}
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
             <span className="badge badge-info" style={{ textTransform: 'uppercase' }}>{selectedArticle.category}</span>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               Criado por {selectedArticle.createdByName || 'Sistema'} em {new Date(selectedArticle.createdAt).toLocaleDateString()}
             </span>
+            {selectedArticle.tags && selectedArticle.tags.length > 0 && selectedArticle.tags.map(t => (
+              <span key={t} className="badge badge-secondary" style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                #{t}
+              </span>
+            ))}
           </div>
           <h1 style={{ fontSize: '2.2rem', marginBottom: '1.5rem' }}>{selectedArticle.title}</h1>
           <div style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: '1.1rem', whiteSpace: 'pre-wrap' }}>
@@ -513,7 +537,7 @@ export default function KnowledgeBase() {
                       <span className="badge badge-info" style={{ fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Tag size={10} /> {art.category}
                       </span>
-                      {canManage && (
+                      {canDelete && (
                         <button 
                           className="btn btn-secondary" 
                           style={{ padding: '0.25rem', border: 'none', background: 'transparent' }}

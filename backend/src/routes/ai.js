@@ -49,7 +49,7 @@ router.post('/chat', async (req, res) => {
       const allTickets = await dbService.getCollection('tickets');
       let userTickets = [];
       if (req.user) {
-        const isStaff = ['super_admin', 'admin', 'gestor', 'coordenador', 'operador'].includes(req.user.role);
+        const isStaff = ['super_admin', 'admin', 'gestor', 'coordenador', 'operador', 'system_admin', 'team_admin', 'channel_admin'].includes(req.user.role);
         if (isStaff) {
           userTickets = allTickets;
         } else {
