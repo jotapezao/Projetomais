@@ -683,10 +683,10 @@ export default function Tickets() {
                 <div style={{ flex: 1, minWidth: '200px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
                     <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{ticket.subject}</h3>
-                    <span style={{ padding: '2px 10px', borderRadius: '100px', fontSize: '0.72rem', fontWeight: 600, background: `${sCfg.color}20`, color: sCfg.color, border: `1px solid ${sCfg.color}40`, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ padding: '2px 10px', borderRadius: '100px', fontSize: '0.72rem', fontWeight: 600, background: `${sCfg.color}20`, color: sCfg.color, display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <SIcon size={12} /> {sCfg.label}
                     </span>
-                    <span style={{ padding: '2px 10px', borderRadius: '100px', fontSize: '0.72rem', fontWeight: 600, background: pCfg.bg, color: pCfg.color, border: `1px solid ${pCfg.color}40` }}>
+                    <span style={{ padding: '2px 10px', borderRadius: '100px', fontSize: '0.72rem', fontWeight: 600, background: pCfg.bg, color: pCfg.color }}>
                       {pCfg.label}
                     </span>
                     <SLABadge ticket={ticket} />

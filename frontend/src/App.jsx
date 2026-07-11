@@ -39,7 +39,7 @@ const ProtectedRoute = ({ children, user }) => {
   return children;
 };
 
-const Sidebar = ({ user, onLogout, mobileOpen, onClose }) => {
+const Sidebar = ({ user, onLogout, mobileOpen, onClose, isCollapsed, onToggleCollapse }) => {
   const location = useLocation();
   const isActive = (path) => location.pathname === path;
 
@@ -57,18 +57,30 @@ const Sidebar = ({ user, onLogout, mobileOpen, onClose }) => {
   }
 
   return (
-    <div className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ marginBottom: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+    <div className={`sidebar ${mobileOpen ? 'mobile-open' : ''} ${isCollapsed ? 'collapsed' : ''}`} style={{ width: isCollapsed ? '80px' : '280px', padding: isCollapsed ? '1.5rem 0.75rem' : '1.5rem', display: 'flex', flexDirection: 'column', transition: 'width 0.3s ease, padding 0.3s ease' }}>
+      <div style={{ marginBottom: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', gap: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem', color: '#fff', boxShadow: 'var(--shadow-neon)' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem', color: '#fff', boxShadow: 'var(--shadow-neon)', flexShrink: 0 }}>
             M
           </div>
-          <div>
-            <h2 style={{ fontSize: '1.1rem', margin: 0, fontWeight: '700' }}>{user ? (user.systemName || 'Mais Tecnologia') : 'Mais Tecnologia'}</h2>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gestão Integrada</span>
-          </div>
+          {!isCollapsed && (
+            <div>
+              <h2 style={{ fontSize: '1.1rem', margin: 0, fontWeight: '700', whiteSpace: 'nowrap' }}>{user ? (user.systemName || 'Mais Tecnologia') : 'Mais Tecnologia'}</h2>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Gestão Integrada</span>
+            </div>
+          )}
         </div>
         
+        {!mobileOpen && (
+          <button 
+            onClick={onToggleCollapse}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: isCollapsed ? 'none' : 'flex', alignItems: 'center' }}
+            title="Recolher menu"
+          >
+            <Menu size={18} />
+          </button>
+        )}
+
         {mobileOpen && (
           <button 
             onClick={onClose} 
@@ -85,11 +97,13 @@ const Sidebar = ({ user, onLogout, mobileOpen, onClose }) => {
             key={item.path}
             to={item.path}
             onClick={onClose}
+            title={isCollapsed ? item.name : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
+              justifyContent: isCollapsed ? 'center' : 'flex-start',
               gap: '0.75rem',
-              padding: '0.75rem 1rem',
+              padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
               borderRadius: 'var(--radius-md)',
               color: isActive(item.path) ? 'var(--text-active)' : 'var(--text-secondary)',
               background: isActive(item.path) ? 'hsla(var(--accent-primary-val), 0.15)' : 'transparent',
@@ -98,22 +112,26 @@ const Sidebar = ({ user, onLogout, mobileOpen, onClose }) => {
               transition: 'all 0.2s',
             }}
           >
-            <item.icon size={20} color={isActive(item.path) ? 'var(--accent-primary)' : 'currentColor'} />
-            {item.name}
+            <item.icon size={20} color={isActive(item.path) ? 'var(--accent-primary)' : 'currentColor'} style={{ flexShrink: 0 }} />
+            {!isCollapsed && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>}
           </Link>
         ))}
       </nav>
 
-      <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-          <img src={user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=60'} alt="Avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--border)' }} />
-          <div style={{ overflow: 'hidden' }}>
-            <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '600', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>{user.name}</p>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{user.role?.replace('_', ' ')}</p>
+      <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', alignItems: isCollapsed ? 'center' : 'stretch' }}>
+        {!isCollapsed ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+            <img src={user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=60'} alt="Avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--border)', flexShrink: 0 }} />
+            <div style={{ overflow: 'hidden' }}>
+              <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '600', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>{user.name}</p>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{user.role?.replace('_', ' ')}</p>
+            </div>
           </div>
-        </div>
-        <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'flex-start' }} onClick={onLogout}>
-          <LogOut size={18} /> Sair
+        ) : (
+          <img src={user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=60'} alt="Avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--border)', marginBottom: '1rem', flexShrink: 0 }} title={user.name} />
+        )}
+        <button className="btn btn-secondary" style={{ width: '100%', justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '0.65rem 0' : '0.65rem 1.4rem' }} onClick={onLogout} title={isCollapsed ? "Sair" : undefined}>
+          <LogOut size={18} style={{ flexShrink: 0 }} /> {!isCollapsed && "Sair"}
         </button>
       </div>
     </div>
@@ -148,12 +166,14 @@ const Topbar = ({
         </button>
         
         {/* Global Search Bar (Linear style) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.4rem 0.8rem', width: '320px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-glass)', backdropFilter: 'blur(10px)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '0.5rem 1rem', width: '320px', transition: 'all 0.3s ease', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)' }} className="search-bar-container">
           <Search size={16} color="var(--text-muted)" />
           <input 
             type="text" 
-            placeholder="Pesquisar projetos, chamados, tarefas..." 
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', fontSize: '0.82rem', width: '100%' }}
+            placeholder="Pesquisar projetos, chamados..." 
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', fontSize: '0.85rem', width: '100%' }}
+            onFocus={(e) => e.target.parentElement.style.borderColor = 'var(--accent-primary)'}
+            onBlur={(e) => e.target.parentElement.style.borderColor = 'var(--border)'}
           />
         </div>
       </div>
@@ -522,6 +542,7 @@ function App() {
   const [activeTheme, setActiveTheme] = useState(() => localStorage.getItem('theme') || 'indigo');
   const [colorScheme, setColorScheme] = useState(() => localStorage.getItem('colorScheme') || 'dark');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === 'true');
   const [showNotifications, setShowNotifications] = useState(false);
   const [systemName, setSystemName] = useState('Mais Tecnologia');
 
@@ -560,6 +581,10 @@ function App() {
     document.documentElement.setAttribute('data-color-scheme', colorScheme);
     localStorage.setItem('colorScheme', colorScheme);
   }, [colorScheme]);
+
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', isCollapsed);
+  }, [isCollapsed]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -683,6 +708,8 @@ function App() {
                 onLogout={handleLogout} 
                 mobileOpen={mobileMenuOpen} 
                 onClose={() => setMobileMenuOpen(false)} 
+                isCollapsed={isCollapsed}
+                onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
               />
               
               <div className="main-content">
@@ -721,8 +748,8 @@ function App() {
               
               {/* Quick Project Modal */}
               {quickCreateType === 'project' && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-                  <div className="glass-card" style={{ width: '100%', maxWidth: '480px', padding: '2rem', position: 'relative' }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', animation: 'fadeIn 0.2s ease-out' }}>
+                  <div className="glass-card" style={{ width: '100%', maxWidth: '480px', padding: '2.5rem', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
                     <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => setQuickCreateType(null)}>
                       <X size={20} />
                     </button>
@@ -751,8 +778,8 @@ function App() {
 
               {/* Quick Task Modal */}
               {quickCreateType === 'task' && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-                  <div className="glass-card" style={{ width: '100%', maxWidth: '480px', padding: '2rem', position: 'relative' }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', animation: 'fadeIn 0.2s ease-out' }}>
+                  <div className="glass-card" style={{ width: '100%', maxWidth: '480px', padding: '2.5rem', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
                     <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => setQuickCreateType(null)}>
                       <X size={20} />
                     </button>
@@ -791,8 +818,8 @@ function App() {
 
               {/* Quick Ticket Modal */}
               {quickCreateType === 'ticket' && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-                  <div className="glass-card" style={{ width: '100%', maxWidth: '520px', padding: '2rem', position: 'relative' }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', animation: 'fadeIn 0.2s ease-out' }}>
+                  <div className="glass-card" style={{ width: '100%', maxWidth: '520px', padding: '2.5rem', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
                     <button style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => setQuickCreateType(null)}>
                       <X size={20} />
                     </button>

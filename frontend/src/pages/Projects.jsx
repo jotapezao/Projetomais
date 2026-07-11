@@ -416,7 +416,6 @@ export default function Projects() {
                               fontWeight: 600,
                               background: prio.bg,
                               color: prio.color,
-                              border: `1px solid ${prio.border}`,
                               display: 'flex',
                               alignItems: 'center',
                               gap: '4px'
@@ -473,26 +472,26 @@ export default function Projects() {
 
         {view === 'list' && (
           <div className="glass-card" style={{ width: '100%', padding: '1.5rem', overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table className="modern-table">
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
-                  <th style={{ padding: '1rem 0' }}>Título da Tarefa</th>
-                  <th style={{ padding: '1rem 0' }}>Fase / Lista</th>
-                  <th style={{ padding: '1rem 0' }}>Prioridade</th>
-                  <th style={{ padding: '1rem 0' }}>Prazo</th>
-                  <th style={{ padding: '1rem 0' }}>Responsável</th>
-                  <th style={{ padding: '1rem 0' }}>Ações</th>
+                <tr>
+                  <th>Título da Tarefa</th>
+                  <th>Fase / Lista</th>
+                  <th>Prioridade</th>
+                  <th>Prazo</th>
+                  <th>Responsável</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {projectTasks.map(task => (
-                  <tr key={task.id} style={{ borderBottom: '1px solid hsla(var(--border), 0.5)', cursor: 'pointer' }} onClick={() => setSelectedTask(task)}>
-                    <td style={{ padding: '1rem 0', fontWeight: '500' }}>{task.title}</td>
-                    <td style={{ padding: '1rem 0' }}><span className="badge badge-info">{task.list}</span></td>
-                    <td style={{ padding: '1rem 0', textTransform: 'capitalize' }}>{task.priority}</td>
-                    <td style={{ padding: '1rem 0' }}>{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'Sem prazo'}</td>
-                    <td style={{ padding: '1rem 0' }}>{teamMembers.find(m => m.id === task.assigneeId)?.name || 'Não atribuído'}</td>
-                    <td style={{ padding: '1rem 0' }} onClick={e => e.stopPropagation()}>
+                  <tr key={task.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedTask(task)}>
+                    <td style={{ fontWeight: '500' }}>{task.title}</td>
+                    <td><span className="badge badge-info">{task.list}</span></td>
+                    <td style={{ textTransform: 'capitalize' }}>{task.priority}</td>
+                    <td>{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'Sem prazo'}</td>
+                    <td>{teamMembers.find(m => m.id === task.assigneeId)?.name || 'Não atribuído'}</td>
+                    <td onClick={e => e.stopPropagation()}>
                       <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', border: 'none', color: 'var(--danger)' }} onClick={() => handleDeleteTask(task.id)}><Trash2 size={16}/></button>
                     </td>
                   </tr>

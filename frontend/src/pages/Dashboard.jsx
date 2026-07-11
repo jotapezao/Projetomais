@@ -44,8 +44,8 @@ function StatCard({ title, value, icon: Icon, colorClass, subtitle, trend }) {
     <div className="glass-card animate-fade-in" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', border: '1px solid var(--border)', cursor: 'pointer', position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-md)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</span>
-        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
-          <Icon size={18} style={{ color: colorClass === 'badge-danger' ? 'var(--danger)' : colorClass === 'badge-success' ? 'var(--success-light)' : 'var(--accent-primary)' }} />
+        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: `hsla(var(--${colorClass.replace('badge-', '')}), 0.15)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon size={18} style={{ color: colorClass === 'badge-danger' ? 'var(--danger)' : colorClass === 'badge-success' ? 'var(--success-light)' : colorClass === 'badge-warning' ? 'var(--warning)' : 'var(--accent-primary)' }} />
         </div>
       </div>
       
@@ -306,14 +306,14 @@ export default function Dashboard() {
     if (selectedCard === 'projects') {
       return (
         <div className="table-responsive">
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <table className="modern-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '0.75rem' }}>Código</th>
-                <th style={{ padding: '0.75rem' }}>Projeto</th>
-                <th style={{ padding: '0.75rem' }}>Progresso das Atividades</th>
-                <th style={{ padding: '0.75rem' }}>Gerente</th>
-                <th style={{ padding: '0.75rem' }}>Status</th>
+              <tr>
+                <th>Código</th>
+                <th>Projeto</th>
+                <th>Progresso das Atividades</th>
+                <th>Gerente</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -325,13 +325,13 @@ export default function Dashboard() {
                 const manager = users.find(u => u.id === p.managerId);
                 
                 return (
-                  <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>{p.code}</td>
-                    <td style={{ padding: '0.75rem' }}>
+                  <tr key={p.id}>
+                    <td style={{ fontWeight: 'bold' }}>{p.code}</td>
+                    <td>
                       <strong>{p.name}</strong>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.description}</div>
                     </td>
-                    <td style={{ padding: '0.75rem', width: '250px' }}>
+                    <td style={{ width: '250px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
                         <span>{doneT}/{totalT} tarefas</span>
                         <span>{pct}%</span>
@@ -340,8 +340,8 @@ export default function Dashboard() {
                         <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent-primary)' }} />
                       </div>
                     </td>
-                    <td style={{ padding: '0.75rem' }}>{manager ? `${manager.name} ${manager.lastName}` : 'Sem gerente'}</td>
-                    <td style={{ padding: '0.75rem' }}>
+                    <td>{manager ? `${manager.name} ${manager.lastName}` : 'Sem gerente'}</td>
+                    <td>
                       <span className="badge badge-info">{p.status?.replace('_', ' ')}</span>
                     </td>
                   </tr>
@@ -362,14 +362,14 @@ export default function Dashboard() {
       const pendingList = filteredTasks.filter(t => !['concluida', 'concluído', 'fechada'].includes(String(t.status || '').toLowerCase()));
       return (
         <div className="table-responsive">
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <table className="modern-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '0.75rem' }}>Tarefa</th>
-                <th style={{ padding: '0.75rem' }}>Projeto</th>
-                <th style={{ padding: '0.75rem' }}>Prazo</th>
-                <th style={{ padding: '0.75rem' }}>Responsável</th>
-                <th style={{ padding: '0.75rem' }}>Prioridade</th>
+              <tr>
+                <th>Tarefa</th>
+                <th>Projeto</th>
+                <th>Prazo</th>
+                <th>Responsável</th>
+                <th>Prioridade</th>
               </tr>
             </thead>
             <tbody>
@@ -378,17 +378,17 @@ export default function Dashboard() {
                 const assignee = users.find(u => u.id === t.assigneeId);
                 const isOverdue = t.deadline && new Date(t.deadline) < new Date();
                 return (
-                  <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: '500' }}>
+                  <tr key={t.id}>
+                    <td style={{ fontWeight: '500' }}>
                       {t.title}
                       {isOverdue && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: 'var(--danger)', fontWeight: 'bold' }}>⚠️ ATRASADA</span>}
                     </td>
-                    <td style={{ padding: '0.75rem' }}>{proj ? `${proj.code} - ${proj.name}` : 'Sem projeto'}</td>
-                    <td style={{ padding: '0.75rem', color: isOverdue ? 'var(--danger)' : 'inherit' }}>
+                    <td>{proj ? `${proj.code} - ${proj.name}` : 'Sem projeto'}</td>
+                    <td style={{ color: isOverdue ? 'var(--danger)' : 'inherit' }}>
                       {t.deadline ? new Date(t.deadline).toLocaleDateString() : 'Sem prazo'}
                     </td>
-                    <td style={{ padding: '0.75rem' }}>{assignee ? `${assignee.name} ${assignee.lastName}` : 'Não atribuído'}</td>
-                    <td style={{ padding: '0.75rem' }}>
+                    <td>{assignee ? `${assignee.name} ${assignee.lastName}` : 'Não atribuído'}</td>
+                    <td>
                       <span className={`badge ${t.priority === 'alta' || t.priority === 'critica' ? 'badge-danger' : 'badge-info'}`}>{t.priority}</span>
                     </td>
                   </tr>
@@ -409,32 +409,32 @@ export default function Dashboard() {
       const openTicketsList = filteredTickets.filter(t => !['resolvido', 'fechado', 'encerrado'].includes(String(t.status || '').toLowerCase()));
       return (
         <div className="table-responsive">
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <table className="modern-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '0.75rem' }}>ID</th>
-                <th style={{ padding: '0.75rem' }}>Assunto</th>
-                <th style={{ padding: '0.75rem' }}>Categoria</th>
-                <th style={{ padding: '0.75rem' }}>Prioridade</th>
-                <th style={{ padding: '0.75rem' }}>SLA Limite</th>
-                <th style={{ padding: '0.75rem' }}>Técnico</th>
+              <tr>
+                <th>ID</th>
+                <th>Assunto</th>
+                <th>Categoria</th>
+                <th>Prioridade</th>
+                <th>SLA Limite</th>
+                <th>Técnico</th>
               </tr>
             </thead>
             <tbody>
               {openTicketsList.map(t => {
                 const isViolated = new Date(t.slaEscalationTime) < new Date();
                 return (
-                  <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem', fontFamily: 'monospace' }}>#{t.id.slice(-6)}</td>
-                    <td style={{ padding: '0.75rem', fontWeight: '500' }}>{t.subject}</td>
-                    <td style={{ padding: '0.75rem' }}>{t.category}</td>
-                    <td style={{ padding: '0.75rem' }}>
+                  <tr key={t.id}>
+                    <td style={{ fontFamily: 'monospace' }}>#{t.id.slice(-6)}</td>
+                    <td style={{ fontWeight: '500' }}>{t.subject}</td>
+                    <td>{t.category}</td>
+                    <td>
                       <span className={`badge ${t.priority === 'critica' ? 'badge-danger' : 'badge-warning'}`}>{t.priority}</span>
                     </td>
-                    <td style={{ padding: '0.75rem', color: isViolated ? 'var(--danger)' : 'inherit', fontWeight: isViolated ? 'bold' : 'normal' }}>
+                    <td style={{ color: isViolated ? 'var(--danger)' : 'inherit', fontWeight: isViolated ? 'bold' : 'normal' }}>
                       {new Date(t.slaEscalationTime).toLocaleString()} {isViolated && '🚨'}
                     </td>
-                    <td style={{ padding: '0.75rem' }}>{t.operatorName || 'Sem técnico'}</td>
+                    <td>{t.operatorName || 'Sem técnico'}</td>
                   </tr>
                 );
               })}
@@ -452,14 +452,14 @@ export default function Dashboard() {
     if (selectedCard === 'resolvedTickets') {
       return (
         <div className="table-responsive">
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <table className="modern-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '0.75rem' }}>ID</th>
-                <th style={{ padding: '0.75rem' }}>Assunto</th>
-                <th style={{ padding: '0.75rem' }}>Categoria</th>
-                <th style={{ padding: '0.75rem' }}>Resolvido em</th>
-                <th style={{ padding: '0.75rem' }}>Técnico</th>
+              <tr>
+                <th>ID</th>
+                <th>Assunto</th>
+                <th>Categoria</th>
+                <th>Resolvido em</th>
+                <th>Técnico</th>
               </tr>
             </thead>
             <tbody>
@@ -467,14 +467,14 @@ export default function Dashboard() {
                 const resolvedEvent = t.history?.find(h => h.status === 'resolvido' || h.status === 'fechado');
                 const resolvedAt = resolvedEvent ? new Date(resolvedEvent.updatedAt) : new Date(t.updatedAt || t.createdAt);
                 return (
-                  <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem', fontFamily: 'monospace' }}>#{t.id.slice(-6)}</td>
-                    <td style={{ padding: '0.75rem', fontWeight: '500' }}>{t.subject}</td>
-                    <td style={{ padding: '0.75rem' }}>{t.category}</td>
-                    <td style={{ padding: '0.75rem', color: 'var(--success-light)' }}>
+                  <tr key={t.id}>
+                    <td style={{ fontFamily: 'monospace' }}>#{t.id.slice(-6)}</td>
+                    <td style={{ fontWeight: '500' }}>{t.subject}</td>
+                    <td>{t.category}</td>
+                    <td style={{ color: 'var(--success-light)' }}>
                       {resolvedAt.toLocaleString()}
                     </td>
-                    <td style={{ padding: '0.75rem' }}>{t.operatorName || 'Sem técnico'}</td>
+                    <td>{t.operatorName || 'Sem técnico'}</td>
                   </tr>
                 );
               })}
@@ -493,13 +493,13 @@ export default function Dashboard() {
       const slaTicketsList = filteredTickets.filter(t => t.slaEscalationTime);
       return (
         <div className="table-responsive">
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <table className="modern-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '0.75rem' }}>ID</th>
-                <th style={{ padding: '0.75rem' }}>Chamado</th>
-                <th style={{ padding: '0.75rem' }}>Prazo Limite</th>
-                <th style={{ padding: '0.75rem' }}>Status SLA</th>
+              <tr>
+                <th>ID</th>
+                <th>Chamado</th>
+                <th>Prazo Limite</th>
+                <th>Status SLA</th>
               </tr>
             </thead>
             <tbody>
@@ -511,11 +511,11 @@ export default function Dashboard() {
                 const violated = resolvedAt > limit;
                 
                 return (
-                  <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem', fontFamily: 'monospace' }}>#{t.id.slice(-6)}</td>
-                    <td style={{ padding: '0.75rem' }}><strong>{t.subject}</strong></td>
-                    <td style={{ padding: '0.75rem' }}>{limit.toLocaleString()}</td>
-                    <td style={{ padding: '0.75rem' }}>
+                  <tr key={t.id}>
+                    <td style={{ fontFamily: 'monospace' }}>#{t.id.slice(-6)}</td>
+                    <td><strong>{t.subject}</strong></td>
+                    <td>{limit.toLocaleString()}</td>
+                    <td>
                       <span className={`badge ${violated ? 'badge-danger' : 'badge-success'}`}>
                         {violated ? '🚨 SLA Violado' : '✅ SLA Cumprido'}
                       </span>
@@ -537,24 +537,24 @@ export default function Dashboard() {
     if (selectedCard === 'operator') {
       return (
         <div className="table-responsive">
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <table className="modern-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '0.75rem' }}>Técnico / Operador</th>
-                <th style={{ padding: '0.75rem' }}>Chamados Atribuídos</th>
-                <th style={{ padding: '0.75rem' }}>Em Atendimento (Abertos)</th>
-                <th style={{ padding: '0.75rem' }}>Resolvidos</th>
-                <th style={{ padding: '0.75rem' }}>Violou SLA</th>
+              <tr>
+                <th>Técnico / Operador</th>
+                <th>Chamados Atribuídos</th>
+                <th>Em Atendimento (Abertos)</th>
+                <th>Resolvidos</th>
+                <th>Violou SLA</th>
               </tr>
             </thead>
             <tbody>
               {technicianData.map((tech, idx) => (
-                <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>{tech.name}</td>
-                  <td style={{ padding: '0.75rem' }}>{tech.total}</td>
-                  <td style={{ padding: '0.75rem', color: 'var(--warning)' }}>{tech.open}</td>
-                  <td style={{ padding: '0.75rem', color: 'var(--success-light)' }}>{tech.resolved}</td>
-                  <td style={{ padding: '0.75rem', color: tech.slaViolated > 0 ? 'var(--danger)' : 'inherit' }}>{tech.slaViolated}</td>
+                <tr key={idx}>
+                  <td style={{ fontWeight: 'bold' }}>{tech.name}</td>
+                  <td>{tech.total}</td>
+                  <td style={{ color: 'var(--warning)' }}>{tech.open}</td>
+                  <td style={{ color: 'var(--success-light)' }}>{tech.resolved}</td>
+                  <td style={{ color: tech.slaViolated > 0 ? 'var(--danger)' : 'inherit' }}>{tech.slaViolated}</td>
                 </tr>
               ))}
             </tbody>
